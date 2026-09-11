@@ -1,6 +1,7 @@
 # Chủ đề 1: Độ trễ chính sách thắt chặt tiền tệ & "gánh nặng âm thầm" lên Hộ gia đình & Doanh nghiệp
 
 **Repo:** <https://github.com/thienanpham160806-code/BIS-dta-story>
+· **Hướng dẫn chạy local:** [`HUONG_DAN_CHAY_LOCAL.md`](HUONG_DAN_CHAY_LOCAL.md)
 · **Khai báo sử dụng AI (mục 26):** [`DECLARATION_AI.md`](DECLARATION_AI.md)
 
 ## Tính thời sự
