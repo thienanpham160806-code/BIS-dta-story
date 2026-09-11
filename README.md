@@ -43,7 +43,7 @@ tế (DSR) lại lập đỉnh lịch sử do lãi suất neo cao.
 
 ## Cấu trúc thư mục
 ```
-bis_project/
+BIS-dta-story/
 ├── data/raw/                        # CSV gốc tải trực tiếp từ API, KHÔNG sửa tay
 │   ├── dsr.csv                      # DSR 2016-Q1 → 2025-Q4 (cửa sổ phân tích)
 │   ├── dsr_longrun.csv              # DSR 1999-Q1 → 2025-Q4, CHỈ để tính mốc 20 năm
