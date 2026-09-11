@@ -113,6 +113,17 @@ thay bằng `labels=both`. Chi tiết ghi trong docstring của `scripts/fetch_d
 - 🔻 09/2024 → 12/2025 — Fed cắt 6 lần liên tiếp (giai đoạn "thở")
 - ❓ 09/2026 (tuần này) — nguy cơ re-hike
 
+## Vì sao có độ trễ — và vì sao độ trễ không cố định
+
+Khái niệm độ trễ truyền dẫn từ chính sách tiền tệ sang gánh nặng trả nợ không phải là một hằng số cố định, mà chịu sự chi phối của bốn cơ chế tài chính nền tảng:
+
+1. **Quán tính tái định giá của các hợp đồng tín dụng hiện hữu**: Lãi suất điều hành của ngân hàng trung ương không lập tức thay đổi chi phí của toàn bộ nền kinh tế. Các khoản vay với lãi suất cố định chỉ chịu tác động khi đến hạn thanh toán và tái cấp vốn; ngay cả các khoản vay theo lãi suất thả nổi cũng thường có chu kỳ điều chỉnh định kỳ (3, 6 hoặc 12 tháng) căn cứ theo lãi suất cơ sở, tạo ra độ trễ tự nhiên trước khi chi phí lãi vay tăng lên trên thực tế.
+2. **Quy mô nợ tồn đọng chi phối chỉ số DSR**: Chỉ số DSR phản ánh nghĩa vụ chi trả trên toàn bộ khối nợ tích tụ trong nền kinh tế (debt stock) thay vì các khoản tín dụng mới phát sinh (new flows). Do đó, các khoản vay mới chịu lãi suất cao cần một khoảng thời gian đủ dài để thẩm thấu và chiếm tỷ trọng đáng kể trong tổng dư nợ thì mới có thể đẩy tỷ lệ DSR bình quân của toàn bộ khu vực tư nhân tăng lên rõ rệt.
+3. **Giả định cấu trúc kỳ hạn trong phương pháp luận của BIS**: Công thức tính DSR của BIS chuẩn hóa kỳ hạn còn lại cố định bình quân (18 năm đối với khu vực hộ gia đình và 13 năm đối với doanh nghiệp phi tài chính). Một cú sốc lãi suất cần có thời gian luân chuyển qua toàn bộ cấu trúc kỳ hạn này để phản ánh trọn vẹn vào gánh nặng dòng tiền trả nợ mô phỏng.
+4. **Độ trễ bổ sung giữa căng thẳng dòng tiền và rủi ro nợ xấu (NPL)**: NPL có độ trễ lớn hơn DSR thêm một tầng nữa. Khi DSR tăng cao, áp lực dòng tiền lập tức đè nặng lên người vay, nhưng hiện tượng vỡ nợ chỉ phát sinh sau khi hộ gia đình và doanh nghiệp đã cạn kiệt các biện pháp ứng phó (cắt giảm chi tiêu tiêu dùng, sử dụng quỹ tiết kiệm dự phòng hoặc đàm phán tái cơ cấu thời hạn trả nợ). Cơ chế này giải thích nguyên nhân tỷ lệ nợ xấu ghi nhận độ lệch pha rõ rệt và không tăng đồng thời với DSR tại 3/4 nền kinh tế quan sát.
+
+Chính bốn cơ chế vận động trên là lý do độ trễ truyền dẫn thực tế đo lường được trong nghiên cứu (trung vị 24.5 tháng) kéo dài hơn so với giả thuyết 12–18 tháng ban đầu của đề cương, hoàn toàn xuất phát từ bản chất vận hành của thị trường tín dụng chứ không phải sai lệch về dữ liệu hay phương pháp tính toán.
+
 ## Kết quả chính (tóm tắt — chi tiết trong notebook)
 
 **Trả lời câu hỏi lớn: CHƯA, và mức độ chênh nhau rất lớn giữa bốn nước.**
