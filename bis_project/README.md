@@ -1,5 +1,8 @@
 # Chủ đề 1: Độ trễ chính sách thắt chặt tiền tệ & "gánh nặng âm thầm" lên Hộ gia đình & Doanh nghiệp
 
+**Repo:** <https://github.com/thienanpham160806-code/BIS-dta-story>
+· **Khai báo sử dụng AI (mục 26):** [`DECLARATION_AI.md`](DECLARATION_AI.md)
+
 ## Tính thời sự
 Sau chu kỳ tăng lãi suất toàn cầu để chống lạm phát (2022–2023), chi phí vốn duy trì ở mức
 cao. Fed đã cắt lãi suất 6 lần liên tiếp (09/2024–12/2025, về 3.5–3.75%), nhưng đầu 2026 lạm
@@ -167,6 +170,18 @@ chứ không thay thế mạch kể. Đây là lý do chọn "bài báo dữ li�
 dashboard thuần: dashboard thuần rất dễ khiến người đọc so mức DSR tuyệt đối giữa các nước —
 đúng cái sai phương pháp mà BIS cảnh báo.
 
+## Hồ sơ nộp
+
+| Hạng mục | Tệp | Mục của đề |
+|---|---|---|
+| Mã tải dữ liệu | [`scripts/fetch_data.py`](scripts/fetch_data.py) | — |
+| Dữ liệu gốc (không sửa tay) | [`data/raw/`](data/raw/) | — |
+| Phân tích + câu chuyện 9 bước | [`notebooks/01_analysis.ipynb`](notebooks/01_analysis.ipynb) | 24 |
+| Bảng mô tả dữ liệu | README, mục bên trên | 16 |
+| Sản phẩm cuối (web localhost) | [`product/`](product/) — `python product/serve.py` | — |
+| **Khai báo sử dụng AI** | [**`DECLARATION_AI.md`**](DECLARATION_AI.md) | **26** |
+| Checklist | README, mục bên dưới | 33 |
+
 ## Checklist trước khi nộp (rút từ đề, mục 33)
 - [x] Đã chạy `fetch_data.py` thành công, có raw CSV cho cả 4 bộ (DSR, credit, policy, NPL)
       — URL BIS cũ trả 404, đã dò lại và chuyển sang SDMX API v2 (xem ghi chú kỹ thuật trên)
@@ -180,3 +195,5 @@ dashboard thuần: dashboard thuần rất dễ khiến người đọc so mức
 - [x] Notebook chạy lại được từ đầu đến cuối (đã verify bằng `nbconvert --execute`, 0 lỗi)
 - [x] Dựng sản phẩm cuối trong `product/` — web dashboard + bài báo dữ liệu,
       chạy bằng `python product/serve.py`, đã kiểm thử headless (0 lỗi JS)
+- [x] Khai báo sử dụng AI (mục 26) — [`DECLARATION_AI.md`](DECLARATION_AI.md)
+- [ ] **Điền họ tên + MSSV vào `DECLARATION_AI.md`** (đang để trống chỗ ký)
