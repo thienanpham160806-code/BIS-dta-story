@@ -113,28 +113,17 @@ python -m jupyter nbconvert --to notebook --execute notebooks/01_analysis.ipynb 
 
 ---
 
-## 5. Pipeline tự động cập nhật dữ liệu (09:00 sáng hàng ngày)
+## 5. Cách tải lại dữ liệu mới từ API (Tùy chọn)
 
-Dự án đã tích hợp sẵn Pipeline ETL tự động hóa toàn bộ luồng: **Gọi API BIS/World Bank $\rightarrow$ Xử lý & tính toán $\rightarrow$ Xuất bản web**:
+Dữ liệu thô từ BIS và World Bank đã được lưu sẵn trong thư mục `data/raw/`. Bạn **không cần** chạy lại bước này trừ khi muốn cập nhật số liệu mới nhất từ máy chủ BIS:
 
-### Cách 1: Tự động chạy ngầm khi bật Dashboard (Tiện nhất)
-Mỗi khi bạn chạy lệnh bật web:
 ```bash
-python product/serve.py
+python scripts/fetch_data.py
 ```
-Máy chủ sẽ tự động kích hoạt một luồng chạy ngầm: cứ đúng **09:00 sáng mỗi ngày**, nó sẽ tự động chạy pipeline kéo số liệu mới từ BIS và build lại Dashboard mà không cần bạn làm gì thêm!
 
-### Cách 2: Chạy kiểm tra Pipeline ngay lập tức
-Nếu bạn muốn kích hoạt pipeline chạy ngay lập tức bằng 1 lệnh:
-```bash
-python scripts/daily_pipeline.py --now
-```
-Log chi tiết sẽ được in ra màn hình và lưu vào `data/pipeline.log`.
-
-### Cách 3: Đăng ký Windows Task Scheduler (Chạy tự động kể cả khi tắt web)
-Nếu dùng Windows, bạn chỉ cần nhấp đúp chạy file:
-- [`scripts/register_windows_task.bat`](file:///c:/Users/Dell/BIS-dta-story/scripts/register_windows_task.bat): Đăng ký tác vụ tự động chạy 09:00 sáng hàng ngày vào hệ thống Windows.
-- [`scripts/unregister_windows_task.bat`](file:///c:/Users/Dell/BIS-dta-story/scripts/unregister_windows_task.bat): Hủy đăng ký tác vụ khi không cần nữa.
+Sau khi tải xong, hãy chạy lại:
+1. `python -m jupyter nbconvert --to notebook --execute notebooks/01_analysis.ipynb --inplace` (để cập nhật notebook)
+2. `python product/build_site.py` (để cập nhật dữ liệu lên web)
 
 ---
 

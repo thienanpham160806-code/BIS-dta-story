@@ -61,55 +61,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             super().log_message(fmt, *args)
 
 
-import datetime
-import time
-
-
-def start_background_scheduler(target_hour=9, target_minute=0):
-    """Luồng chạy ngầm tự động kích hoạt pipeline vào 09:00 sáng mỗi ngày."""
-    pipeline_script = HERE.parent / "scripts" / "daily_pipeline.py"
-
-    def loop():
-        while True:
-            now = datetime.datetime.now()
-            target = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
-            if target <= now:
-                target += datetime.timedelta(days=1)
-            wait_sec = (target - now).total_seconds()
-            time.sleep(wait_sec)
-            
-            print(f"\n[pipeline] 09:00 — Tự động cập nhật dữ liệu hàng ngày...")
-            try:
-                res = subprocess.run([sys.executable, str(pipeline_script), "--now"],
-                                     capture_output=True, text=True, encoding="utf-8", errors="replace")
-                print(res.stdout.strip() or res.stderr.strip())
-                print("[pipeline] Cập nhật thành công. Dữ liệu trên Dashboard đã sẵn sàng.\n")
-            except Exception as e:
-                print(f"[pipeline] Lỗi cập nhật tự động: {e}\n")
-            time.sleep(60)
-
-    t = threading.Thread(target=loop, daemon=True)
-    t.start()
-    
-    # Tính thời gian lần chạy kế tiếp để in thông báo
-    now = datetime.datetime.now()
-    target = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
-    if target <= now:
-        target += datetime.timedelta(days=1)
-    return target.strftime("%Y-%m-%d %H:%M:%S")
-
-
 if __name__ == "__main__":
     if not ensure_built():
         sys.exit(1)
-
-    next_run = start_background_scheduler(9, 0)
 
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("127.0.0.1", PORT), Handler) as httpd:
         url = f"http://localhost:{PORT}/"
         print(f"\n  Dashboard đang chạy:  {url}")
-        print(f"  Tự động cập nhật:     09:00 hàng ngày (lần tới: {next_run})")
         print("  Dừng bằng Ctrl+C\n")
         threading.Timer(0.8, lambda: webbrowser.open(url)).start()
         try:

@@ -67,9 +67,6 @@
       <div class="hero-stat-badge">
         <span style="color:var(--good)">📊 8 Biểu đồ</span> Đa chiều
       </div>
-      <div class="hero-stat-badge pipeline-badge" id="pipeline-stat-badge" title="Pipeline ETL tự động chạy vào 09:00 sáng hàng ngày">
-        <span class="pipeline-pulse-dot"></span> <span id="pipeline-status-text">Pipeline: 09:00 sáng</span>
-      </div>
     </div>
   </div>
 
@@ -477,7 +474,8 @@
 
     <footer>
       Nguồn: BIS SDMX API v2 (<code>WS_DSR 1.0</code>, <code>WS_TC 2.0</code>, <code>WS_CBPOL 1.0</code>)
-      và World Bank <code>FB.AST.NPER.ZS</code>. Pipeline ETL tự động cập nhật vào <b>09:00 sáng hàng ngày</b>. Lần cập nhật gần nhất: <code id="foot-updated-at">...</code>.
+      và World Bank <code>FB.AST.NPER.ZS</code>. Toàn bộ số liệu trên trang này được sinh lại từ
+      <code>data/raw/</code> mỗi lần chạy <code>product/build_site.py</code> — không có con số nào gõ tay.
     </footer>
   </div>
 </main>
