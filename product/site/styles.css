@@ -375,6 +375,24 @@ header {
   box-shadow: var(--shadow-sm);
 }
 
+.hero-stat-badge.pipeline-badge {
+  background: color-mix(in srgb, var(--good) 10%, var(--surface-0));
+  border-color: color-mix(in srgb, var(--good) 30%, transparent);
+  color: var(--good);
+  font-weight: 600;
+}
+
+.pipeline-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--good);
+  box-shadow: 0 0 8px var(--good);
+  animation: pulse-dot 2s infinite ease-in-out;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
 /* ── Explainer Box (Collapsible) ─────────────────────────────────────────── */
 .explainer-box {
   background: var(--surface-1);

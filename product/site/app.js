@@ -730,6 +730,12 @@ fetch("data.json")
     } catch (_) { /* private mode: stay on default */ }
     updateThemeIcon();
     $("#src").textContent = "Nguồn: " + D.meta.source;
+    if (D.meta.updated_at) {
+      const pText = $("#pipeline-status-text");
+      if (pText) pText.innerHTML = `Tự động 09:00 · <span style="font-weight:400;opacity:0.85">${D.meta.updated_at}</span>`;
+      const fText = $("#foot-updated-at");
+      if (fText) fText.textContent = D.meta.updated_at;
+    }
     wire();
     fillStoryNumbers();
     renderAll();

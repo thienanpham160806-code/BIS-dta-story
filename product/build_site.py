@@ -219,6 +219,9 @@ payload = {
             "risk": ["2026-01-01", "2026-09-30"],
         },
         "source": "BIS SDMX v2 (WS_DSR 1.0, WS_TC 2.0, WS_CBPOL 1.0) + World Bank FB.AST.NPER.ZS",
+        "updated_at": pd.Timestamp.now().strftime("%H:%M:%S %d/%m/%Y"),
+        "updated_at_iso": pd.Timestamp.now().isoformat(),
+        "pipeline_schedule": "09:00 hàng ngày (Daily at 09:00 AM ICT)",
     },
     "bench": {k: round(float(v), 2) for k, v in BENCH.items()},
     "series": {
