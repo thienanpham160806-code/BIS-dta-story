@@ -1,8 +1,7 @@
 /* =============================================================================
-   Design tokens — BIS debt-service dashboard
-   See product/DESIGN.md for the rationale. Two directions are defined while the
-   choice is open:  <html data-direction="a">  Editorial  ·  "b"  Institutional
-   Theme:  <html data-theme="light|dark">  (falls back to prefers-color-scheme)
+   Design tokens — direction A "Editorial" (see product/DESIGN.md)
+   Theme: <html data-theme="light|dark">; app.js sets it from the saved choice or
+   from prefers-color-scheme, so every rule below keys off data-theme only.
    ============================================================================= */
 
 :root {
@@ -10,19 +9,38 @@
   --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
   --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
 
-  /* ---- type scale (1.2 minor third, 16px body) ---------------------------- */
+  /* ---- type ---------------------------------------------------------------- */
+  --font-head: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --fs-xs: 12px; --fs-sm: 13.5px; --fs-md: 16px; --fs-lg: 19px;
   --fs-xl: 23px; --fs-2xl: 28px; --fs-3xl: 34px; --fs-kpi: 32px;
   --lh-tight: 1.2; --lh-body: 1.55;
 
-  /* ---- z-index scale ------------------------------------------------------- */
-  --z-sticky: 10; --z-drawer: 30; --z-tour: 40; --z-toast: 50;
+  /* ---- shape --------------------------------------------------------------- */
+  --radius-sm: 2px; --radius: 3px; --radius-lg: 4px; --radius-pill: 999px;
+  --rule-strong: 3px;
+  --shadow-pop: 0 8px 24px rgba(26, 24, 20, .14);   /* drawers, popovers, tour only */
 
-  /* ---- motion: transitions only, short; disabled for reduced motion -------- */
+  /* ---- z-index scale ------------------------------------------------------- */
+  --z-sticky: 10; --z-popover: 20; --z-drawer: 30; --z-tour: 40; --z-toast: 50;
+
+  /* ---- motion: transitions only, short ------------------------------------- */
   --dur-fast: 150ms; --dur: 220ms; --ease: cubic-bezier(.2, .7, .2, 1);
 
-  /* ---- chart palette: categorical (validated, dataviz method) -------------- */
-  /* slots 1-4 are reserved for KR, TH, MY, HK; others take the lowest free slot */
+  /* ---- surfaces & ink (light) ---------------------------------------------- */
+  color-scheme: light;
+  --bg: #f7f4ee;  --surface: #fcfbf8; --surface-2: #f1ede4;
+  --ink: #1a1814; --ink-2: #4a4740;   --muted: #6b675f;
+  --rule: #ddd8cd; --rule-2: #c9c3b6;
+  --accent: #1f4e8c; --accent-ink: #ffffff; --accent-soft: #e4ebf4;
+  --kicker: #9c2b2b;
+  --focus: rgba(31, 78, 140, .45);
+  --focus-ring: 0 0 0 3px var(--focus);
+  --skeleton: #ebe6db;
+  --chart-grid: #e7e3da; --chart-axis: #c9c3b6;
+
+  /* ---- chart palette: categorical (validated with the dataviz validator) --- */
+  /* slots 1-4 are pinned to KR, TH, MY, HK; others take the lowest free slot */
   --cat-1: #2a78d6; --cat-2: #eb6834; --cat-3: #1baf7a; --cat-4: #eda100;
   --cat-5: #e87ba4; --cat-6: #008300; --cat-7: #4a3aa7; --cat-8: #e34948;
 
@@ -30,81 +48,30 @@
   --div-pos-4: #b2182b; --div-pos-3: #d6604d; --div-pos-2: #f4a582; --div-pos-1: #fddbc7;
   --div-mid: #f0efec;
   --div-neg-1: #d1e5f0; --div-neg-2: #92c5de; --div-neg-3: #4393c3; --div-neg-4: #2166ac;
-  --map-nodata: #dcd9d1;
-
-  --focus-ring: 0 0 0 3px var(--focus);
+  --map-nodata: #d6d2c8;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  :root { --dur-fast: 0ms; --dur: 0ms; }
-}
-
-/* =============================================================================
-   Direction A — Editorial ("báo chí tài chính")
-   Warm paper, serif headlines, hairline rules, no shadows, near-square corners.
-   ============================================================================= */
-:root[data-direction="a"] {
-  --font-head: "Newsreader", Georgia, "Times New Roman", serif;
-  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-num: "IBM Plex Sans", system-ui, sans-serif;
-  --radius-sm: 2px; --radius: 3px; --radius-lg: 4px; --radius-pill: 999px;
-  --shadow-1: none; --shadow-2: 0 8px 24px rgba(26, 24, 20, .12);
-  --rule-strong: 3px;
-
-  --bg: #f7f4ee;  --surface: #fcfbf8; --surface-2: #f1ede4;
-  --ink: #1a1814; --ink-2: #4a4740;   --muted: #6b675f;
-  --rule: #ddd8cd; --rule-2: #c9c3b6;
-  --accent: #1f4e8c; --accent-ink: #ffffff; --accent-soft: #e4ebf4;
-  --focus: rgba(31, 78, 140, .45);
-  --chart-grid: #e7e3da; --chart-axis: #c9c3b6;
-}
-:root[data-direction="a"][data-theme="dark"] {
+:root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #141310;  --surface: #1b1a17; --surface-2: #24221e;
   --ink: #f2efe8; --ink-2: #c9c4b8;   --muted: #a39e92;
   --rule: #34312b; --rule-2: #46423a;
   --accent: #8fb3e6; --accent-ink: #141310; --accent-soft: #233247;
+  --kicker: #ef8f86;
   --focus: rgba(143, 179, 230, .55);
+  --skeleton: #26241f;
   --chart-grid: #2b2925; --chart-axis: #46423a;
-  --shadow-2: 0 8px 24px rgba(0, 0, 0, .5);
-}
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, .55);
 
-/* =============================================================================
-   Direction B — Institutional ("bảng số liệu thể chế")
-   Cool neutral, one sans family + mono figures, soft cards, left filter rail.
-   ============================================================================= */
-:root[data-direction="b"] {
-  --font-head: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-num: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
-  --radius-sm: 6px; --radius: 8px; --radius-lg: 12px; --radius-pill: 999px;
-  --shadow-1: 0 1px 2px rgba(15, 23, 42, .06), 0 1px 3px rgba(15, 23, 42, .08);
-  --shadow-2: 0 10px 30px rgba(15, 23, 42, .16);
-  --rule-strong: 1px;
-
-  --bg: #f3f5f8;  --surface: #ffffff; --surface-2: #f1f4f9;
-  --ink: #0f172a; --ink-2: #334155;   --muted: #536072;
-  --rule: #e2e8f0; --rule-2: #cbd5e1;
-  --accent: #1e3a8a; --accent-ink: #ffffff; --accent-soft: #e6ecfa;
-  --focus: rgba(30, 58, 138, .40);
-  --chart-grid: #edf1f6; --chart-axis: #cbd5e1;
-}
-:root[data-direction="b"][data-theme="dark"] {
-  --bg: #0b1220;  --surface: #111827; --surface-2: #172033;
-  --ink: #f1f5f9; --ink-2: #cbd5e1;   --muted: #9aa7ba;
-  --rule: #1f2a3b; --rule-2: #2e3b50;
-  --accent: #93b4f5; --accent-ink: #0b1220; --accent-soft: #1c2a47;
-  --focus: rgba(147, 180, 245, .55);
-  --chart-grid: #1c2638; --chart-axis: #2e3b50;
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, .4);
-  --shadow-2: 0 10px 30px rgba(0, 0, 0, .55);
-}
-
-/* ---- dark-mode chart palette: same hues, stepped for dark surfaces --------- */
-:root[data-theme="dark"] {
   --cat-1: #3987e5; --cat-2: #d95926; --cat-3: #199e70; --cat-4: #c98500;
   --cat-5: #d55181; --cat-6: #008300; --cat-7: #9085e9; --cat-8: #e66767;
-  --div-pos-4: #e8705f; --div-pos-3: #c4524a; --div-pos-2: #8f3b38; --div-pos-1: #5a2d2b;
-  --div-mid: #383835;
-  --div-neg-1: #26394d; --div-neg-2: #2f5c80; --div-neg-3: #4a87b8; --div-neg-4: #7db3df;
-  --map-nodata: #2a2926;
+
+  --div-pos-4: #f08a78; --div-pos-3: #cf5a4e; --div-pos-2: #93403b; --div-pos-1: #5e3431;
+  --div-mid: #4b4a46;
+  --div-neg-1: #2f4458; --div-neg-2: #2f6189; --div-neg-3: #4f8fc2; --div-neg-4: #8cbde6;
+  --map-nodata: #26241f;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur: 0ms; }
 }

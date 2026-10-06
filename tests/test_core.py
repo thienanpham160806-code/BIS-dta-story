@@ -192,6 +192,19 @@ class TestEuroMapping:
         assert core.policy_code_for("KR", {}, {"KR"}) == ("KR", "")
         assert core.policy_code_for("SG", {}, {"KR"}) == ("", "")
 
+    def test_jump_at_euro_adoption_is_not_a_hike(self, policy_raw):
+        # Croatia-like: national rate 0 until 2022-12, ECB rate from 2023-01.
+        raw = policy_raw.copy()
+        raw["HR"] = np.where(raw.index < "2023-01-01", 0.0, np.nan)
+        raw["XM"] = np.where(raw.index < "2022-07-01", 0.0, 2.5)
+        s = core.mapped_policy("HR", raw, {"HR": 2023})
+        cyc = core.find_liftoff(s)
+        assert cyc["liftoff"] == pd.Timestamp("2023-01-31")         # raw algorithm sees a jump
+        r = core.exclude_regime_switch(cyc, 2023)
+        assert not r["has_cycle"] and "regime switch" in r["reason"]
+        # a real hike (not in the adoption month) is kept
+        assert core.exclude_regime_switch(core.find_liftoff(raw["XM"]), 1999)["has_cycle"]
+
     def test_wb_iso3_maps_euro_area_to_emu(self):
         meta = pd.DataFrame({"iso2_wb": ["XM", "KR"], "iso3": ["LIC", "KOR"]})
         assert core.bis_to_wb_iso3(["XM", "KR"], meta) == {"XM": "EMU", "KR": "KOR"}

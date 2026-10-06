@@ -213,6 +213,17 @@ def find_liftoff(policy: pd.Series, window=CYCLE_WINDOW, peak_end=CYCLE_PEAK_END
     return out
 
 
+def exclude_regime_switch(cycle: dict, euro_since: int | None) -> dict:
+    """A 'lift-off' in the month a country adopts the euro is the switch from its
+    national rate to the ECB rate, not a policy decision: mark it as no cycle."""
+    lo = cycle.get("liftoff")
+    if cycle.get("has_cycle") and euro_since and lo is not None and \
+            (pd.Timestamp(lo).year, pd.Timestamp(lo).month) == (euro_since, 1):
+        return {**cycle, "has_cycle": False, "liftoff": None, "peak_date": None, "peak": np.nan,
+                "hike_pp": np.nan, "reason": f"rate jump at euro adoption ({euro_since}-01) is a regime switch, not a hike"}
+    return cycle
+
+
 # ============================================================================ lag
 def measure_lag(dsr: pd.Series, liftoff) -> dict:
     """Quarters from the lift-off quarter to the highest DSR at or after it.
@@ -359,7 +370,7 @@ def run_all(data_dir: Path | str) -> Results:
     # ---- policy cycles
     cyc = []
     for c in countries.index:
-        r = find_liftoff(policy[c])
+        r = exclude_regime_switch(find_liftoff(policy[c]), t["euro_since"].get(c))
         r.update(iso2=c, policy_code=countries.loc[c, "policy_code"])
         cyc.append(r)
     cycles = pd.DataFrame(cyc).set_index("iso2")

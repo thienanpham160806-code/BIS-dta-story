@@ -1,8 +1,8 @@
 # Design system — Dashboard độ trễ truyền dẫn lãi suất → DSR
 
-> Trạng thái: **đang chờ chọn hướng A hoặc B.** Token của cả hai hướng nằm trong
-> [`site/tokens.css`](site/tokens.css) (chọn bằng `<html data-direction="a|b">`).
-> Ảnh chụp mẫu: [`design/screens/`](design/screens/) · trang mẫu: `design/preview.html?dir=a|b&theme=light|dark`.
+> **Đã chọn: hướng A — Biên tập** (06/10/2026). Token nằm trong [`site/tokens.css`](site/tokens.css).
+> Ảnh chụp hai hướng lúc đề xuất (dữ liệu thật) được giữ lại ở [`design/screens/`](design/screens/) để đối chiếu.
+> Gán màu nước: ghim 4 nước gốc + gán theo thứ tự trong URL (xem mục "Màu dữ liệu").
 
 Đề xuất được dựng bằng skill **ui-ux-pro-max** (truy vấn: *financial data dashboard, central bank,
 macroeconomic analytics, editorial*), rồi lọc lại theo định hướng "dữ liệu là nhân vật chính":
