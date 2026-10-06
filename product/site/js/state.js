@@ -15,7 +15,7 @@ export function buildIndex(D) {
   const npl = Object.fromEntries(D.npl_corr.map((r) => [r.iso2, r]));
   const economies = D.countries.filter((c) => !c.aggregate);
   const maxYear = +D.meta.summary.latest.dsr.slice(0, 4);
-  const minYear = Math.min(...Object.values(D.series.dsr).map((s) => +s.s.slice(0, 4)));
+  const minYear = Math.min(...Object.values(D.series.gap).map((s) => +s.s.slice(0, 4)));   // same span as DSR levels
   const recP = D.recovery.filter((r) => r.borrower === "P");
   const groups = {
     focus: FOCUS,

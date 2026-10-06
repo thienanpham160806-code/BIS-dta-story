@@ -60,6 +60,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def send_head(self):
         path = Path(self.translate_path(self.path))
+        if path.is_dir() and (path / "index.html").is_file():
+            path = path / "index.html"
         if (path.suffix in COMPRESS and path.is_file()
                 and "gzip" in self.headers.get("Accept-Encoding", "")):
             key = (path, path.stat().st_mtime)

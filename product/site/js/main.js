@@ -4,13 +4,14 @@ import { buildIndex, parseURL, toURL, assignSlots, resolvePreset, HASH, FOCUS } 
 import * as charts from "./charts.js";
 import { initFilters, syncFilters, initTheme, initHowto, initTerms, toast } from "./ui.js";
 import { renderGuide, guideTokens, fillAll } from "./guide.js";
-import { renderStory } from "./story.js";
+import { renderStory, renderStoryFigures } from "./story.js";
 import { startTour, tourSeen } from "./tour.js";
 
 let I, G, s, slots, ui;
 const dirty = new Set();
 const visible = new Set();
-let storyDone = false;
+let storyDone = false;        // story text rendered
+let figuresDone = false;      // story figures rendered (need Plotly + series)
 
 const RENDER = {
   dsr: charts.renderDSR, lag: charts.renderLag, map: charts.renderMap, credit: charts.renderCredit,
@@ -27,7 +28,6 @@ async function load() {
       fetch("data.json").then((r) => { if (!r.ok) throw new Error(`data.json: HTTP ${r.status}`); return r.json(); }),
       fetch("guide.json").then((r) => { if (!r.ok) throw new Error(`guide.json: HTTP ${r.status}`); return r.json(); }),
     ]);
-    await plotlyReady();
     return [d, g];
   } catch (e) {
     $("#load-error-msg").textContent = e.message || String(e);
@@ -37,11 +37,25 @@ async function load() {
   }
 }
 
-function plotlyReady() {
-  return new Promise((res, rej) => {
-    let n = 0;
-    (function wait() { if (window.Plotly) return res(); if (++n > 200) return rej(new Error("Không tải được thư viện biểu đồ (vendor/plotly-geo.min.js).")); setTimeout(wait, 25); })();
+/** The long series (levels, credit, policy, NPL) arrive after the first screen. */
+let seriesReady = false;
+function loadSeries() {
+  return fetch("data-series.json").then((r) => { if (!r.ok) throw new Error(`data-series.json: HTTP ${r.status}`); return r.json(); })
+    .then((x) => { Object.assign(I.D.series, x.series); seriesReady = true; });
+}
+
+/** Plotly is injected only after the headline and KPIs are on screen: it is the
+ *  heaviest file on the page and no chart is needed for the first paint. */
+let plotlyPromise = null;
+function loadPlotly() {
+  plotlyPromise ??= new Promise((res, rej) => {
+    const sc = document.createElement("script");
+    sc.src = "vendor/plotly-geo.min.js";
+    sc.onload = () => res();
+    sc.onerror = () => rej(new Error("Không tải được thư viện biểu đồ (vendor/plotly-geo.min.js)."));
+    document.head.appendChild(sc);
   });
+  return plotlyPromise;
 }
 
 async function main() {
@@ -71,7 +85,12 @@ async function main() {
 
   observeCards();
   afterChange();
-  if (!tourSeen() && s.view === "dashboard") setTimeout(runTour, 600);
+  // Start the heavy downloads only after the first frame with text has been painted.
+  requestAnimationFrame(() => setTimeout(() => document.documentElement.classList.add("animate-views"), 0));
+  // The chart library is the heaviest file on the page: fetch it (and the long
+  // series) only when a chart is about to scroll into view. The guide never needs it.
+  window.addEventListener("load", () => document.documentElement.classList.add("animate-views"), { once: true });
+  if (!tourSeen() && s.view === "dashboard") setTimeout(runTour, 900);
 }
 
 function fillStatic() {
@@ -121,7 +140,10 @@ function showView(v) {
   $$("main .view").forEach((el) => { el.hidden = el.dataset.view !== v; });
   const title = { dashboard: "Bảng điều khiển", story: "Câu chuyện dữ liệu", guide: "Hướng dẫn" }[v];
   document.title = `${title} · Độ trễ lãi suất → gánh nặng trả nợ`;
-  if (v === "story" && !storyDone) { renderStory(I); storyDone = true; }
+  if (v === "story") {
+    if (!storyDone) { renderStory(I); storyDone = true; $$("#story .plot").forEach((el) => chartIO.observe(el)); }
+    if (!figuresDone && window.Plotly && seriesReady) { renderStoryFigures(I); figuresDone = true; }
+  }
   if (v === "guide") {
     const target = location.hash.match(/g-\w+/)?.[0];
     if (target) $(`#${target}`)?.scrollIntoView();
@@ -129,19 +151,34 @@ function showView(v) {
 }
 
 /* ------------------------------------------------------------------ lazy charts */
-function observeCards() {
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach((e) => {
-      const k = e.target.dataset.chart;
-      if (e.isIntersecting) { visible.add(k); } else visible.delete(k);
-    });
+let chartsRequested = false;
+function requestCharts() {
+  if (chartsRequested) return;
+  chartsRequested = true;
+  Promise.all([loadPlotly(), loadSeries()]).then(() => {
+    Object.keys(RENDER).forEach((k) => dirty.add(k));
     flush();
-  }, { rootMargin: "300px 0px" });
-  $$("[data-chart]").forEach((el) => io.observe(el));
+    if (s.view === "story") showView("story");
+  }).catch((e) => {
+    $$("[data-chart] .plot, .article .plot").forEach((el) => charts.emptyState(el, "Không tải được thư viện biểu đồ", e.message));
+  });
+}
+
+const chartIO = new IntersectionObserver((entries) => {
+  entries.forEach((e) => {
+    const k = e.target.dataset.chart;
+    if (k) { if (e.isIntersecting) visible.add(k); else visible.delete(k); }
+    if (e.isIntersecting) requestCharts();
+  });
+  flush();
+}, { rootMargin: "0px 0px 50px 0px" });
+
+function observeCards() {
+  $$("[data-chart]").forEach((el) => chartIO.observe(el));
 }
 
 function flush() {
-  if (s.view !== "dashboard") return;
+  if (s.view !== "dashboard" || !window.Plotly || !seriesReady) return;
   [...dirty].filter((k) => visible.has(k)).forEach((k) => {
     dirty.delete(k);
     if (!s.c.length && NEEDS_SELECTION.includes(k)) {
@@ -160,7 +197,7 @@ function flush() {
 function rerenderAll() {
   Object.keys(RENDER).forEach((k) => dirty.add(k));
   flush();
-  if (storyDone) { storyDone = false; if (s.view === "story") showView("story"); }
+  if (figuresDone) { figuresDone = false; if (s.view === "story") showView("story"); }
 }
 
 /* ------------------------------------------------------------------ headline + KPIs */

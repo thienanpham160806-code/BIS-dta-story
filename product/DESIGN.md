@@ -32,7 +32,7 @@ macroeconomic analytics, editorial*), rồi lọc lại theo định hướng "d
 | | **A — Biên tập (báo chí tài chính)** | **B — Thể chế (bảng số liệu)** |
 |---|---|---|
 | Cảm giác | Bài báo dữ liệu: giấy ấm, tiêu đề serif, đường kẻ mảnh | Báo cáo định chế: lạnh, gọn, dạng thẻ |
-| Tiêu đề | Newsreader 500/600 | IBM Plex Sans 600 |
+| Tiêu đề | Newsreader 400/600 | IBM Plex Sans 600 |
 | Chữ UI / số | IBM Plex Sans, số `tabular-nums` | IBM Plex Sans; số KPI IBM Plex Mono |
 | Nền / bề mặt (sáng) | `#f7f4ee` / `#fcfbf8` | `#f3f5f8` / `#ffffff` |
 | Nền / bề mặt (tối) | `#141310` / `#1b1a17` | `#0b1220` / `#111827` |

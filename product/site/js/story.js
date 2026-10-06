@@ -33,7 +33,7 @@ export function renderStory(I) {
   const smZero = sm.lo <= 0 && sm.hi >= 0;
   const npl = FOCUS.map((k) => ({ k, r: I.npl[k] })).filter((x) => x.r);
   const nplCIzero = npl.filter((x) => x.r.lo_change <= 0 && x.r.hi_change >= 0).length;
-  const credit = (k) => lastValid(expand(D.series.credit[`${k}_P`], "Q"));
+  const credit = (k) => (D.series.credit ? lastValid(expand(D.series.credit[`${k}_P`], "Q")) : null);
   const cens = D.lags.filter((r) => r.borrower === "P" && r.censored).map((r) => name(r.iso2));
   const noCycle = D.lags.filter((r) => r.borrower === "P" && !r.has_cycle).map((r) => name(r.iso2));
   const S = D.meta.summary;
@@ -45,6 +45,11 @@ export function renderStory(I) {
     if (st.key === "norise") return `DSR không vượt mức trước khi tăng lãi suất, nên không có đỉnh truyền dẫn để đo`;
     return st.text;
   };
+
+  const creditSentence = () => (credit("HK")
+    ? `Ở ${esc(qLabel(credit("HK").x))}, dư nợ khu vực tư nhân so với GDP là ${FOCUS.map((k) => `${esc(name(k))} ${vn(credit(k).y, 0)}%`).join(", ")}.`
+    : `<span class="sk-line" style="display:inline-block;width:60%"></span>`);
+  storyCredit = creditSentence;
 
   $("#story").innerHTML = `
     <div class="kicker">Câu chuyện dữ liệu</div>
@@ -62,8 +67,7 @@ export function renderStory(I) {
     <div class="callout"><p>Vì sao so <b>độ lệch</b> chứ không so mức DSR? Mỗi nước đo thu nhập và cấu trúc khoản vay khác nhau, nên DSR ${vn(rec("HK_P").latest, 1)}% của Hong Kong và ${vn(rec("TH_P").latest, 1)}% của Thái Lan không nói nước nào "nặng nợ" hơn. BIS khuyến nghị so với lịch sử của chính nước đó.</p></div>
 
     <h2>2. Nợ nhiều không có nghĩa là trả nợ nặng</h2>
-    <p>${term("creditgdp", "Tín dụng/GDP")} đo <i>quy mô</i> nợ; DSR đo <i>dòng tiền</i> phải trả mỗi kỳ. Ở ${esc(qLabel(credit("HK").x))},
-      dư nợ khu vực tư nhân so với GDP là ${FOCUS.map((k) => `${esc(name(k))} ${vn(credit(k).y, 0)}%`).join(", ")}.
+    <p>${term("creditgdp", "Tín dụng/GDP")} đo <i>quy mô</i> nợ; DSR đo <i>dòng tiền</i> phải trả mỗi kỳ. <span id="story-credit">${creditSentence()}</span>
       Hai chỉ tiêu có thể đi ngược chiều: khi lãi suất tăng, phần phải trả trên cùng một khoản nợ tăng lên, dù dư nợ đứng yên hoặc giảm.</p>
 
     <h2>3. Cường độ cú sốc rất khác nhau</h2>
@@ -124,7 +128,16 @@ export function renderStory(I) {
       <li>Không có dự báo: mọi biểu đồ dừng ở kỳ dữ liệu mới nhất.</li>
     </ul>`;
 
-  // ---- figures
+}
+
+let storyCredit = null;
+
+/** Figures need Plotly and the deferred series; the text above does not. */
+export function renderStoryFigures(I) {
+  const D = I.D;
+  const name = (k) => I.C[k].vi;
+  const cyc = D.cycles;
+  if (storyCredit) $("#story-credit").innerHTML = storyCredit();
   const slots = assignSlots(FOCUS);
   const ctx = { I, slots, s: { c: FOCUS, from: 2016, to: I.maxYear, b: "P", v: "gap" } };
   const ds = D.series.gap;

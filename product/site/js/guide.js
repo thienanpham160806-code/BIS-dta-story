@@ -1,5 +1,5 @@
 // "Hướng dẫn" page, rendered from guide.json. Numbers come from data.json via tokens.
-import { $, esc, qLabel, periodLabel } from "./util.js";
+import { $, esc } from "./util.js";
 import { guideCardHTML } from "./ui.js";
 
 /** Values for {token} placeholders in guide.json. */
@@ -9,19 +9,13 @@ export function guideTokens(I) {
   return {
     n_dsr: S.with_dsr, n_hn: S.with_dsr_breakdown_HN, npl_n_min: Math.min(...npln), npl_n_max: Math.max(...npln),
     cross_n: I.D.cross.hike_vs_rise.n, large_hike: I.D.meta.large_hike_pp,
-    dsr_last: qLabel(lastOf(I, "dsr", "Q")), credit_last: qLabel(lastOf(I, "credit", "Q")),
-    policy_last: periodLabel(lastOf(I, "policy", "M"), "M"), npl_last: S.latest.npl,
+    dsr_last: q(S.latest.dsr), credit_last: q(S.latest.credit), policy_last: m(S.latest.policy), npl_last: S.latest.npl,
     retrieved: I.D.meta.retrieved, built: I.D.meta.built,
   };
 }
-function lastOf(I, ds, freq) {
-  const step = freq === "Q" ? 3 : freq === "M" ? 1 : 12;
-  return Object.values(I.D.series[ds]).map((s) => {
-    const [y, m] = s.s.split("-").map(Number);
-    const months = m - 1 + (s.v.length - 1) * step;
-    return `${y + Math.floor(months / 12)}-${String((months % 12) + 1).padStart(2, "0")}-28`;
-  }).sort().at(-1);
-}
+// fetch_summary.json labels: "2026-Q1" -> "Q1/2026", "2026-08" -> "08/2026"
+const q = (s) => s.replace(/(\d{4})-Q(\d)/, "Q$2/$1");
+const m = (s) => s.replace(/(\d{4})-(\d{2})/, "$2/$1");
 
 export const fill = (str, tok) => String(str).replace(/\{(\w+)\}/g, (m, k) => (k in tok ? tok[k] : m));
 

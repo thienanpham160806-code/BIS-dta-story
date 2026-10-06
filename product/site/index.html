@@ -16,9 +16,19 @@
     document.documentElement.dataset.theme = t;
   })();
 </script>
-<link rel="preload" href="fonts/plexsans-400-vietnamese.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="fonts/newsreader-600-vietnamese.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/plexsans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/newsreader-600.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/newsreader-400.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="data.json" as="fetch" type="application/json" crossorigin>
+<link rel="preload" href="guide.json" as="fetch" type="application/json" crossorigin>
+<link rel="modulepreload" href="js/main.js">
+<link rel="modulepreload" href="js/util.js">
+<link rel="modulepreload" href="js/state.js">
+<link rel="modulepreload" href="js/charts.js">
+<link rel="modulepreload" href="js/ui.js">
+<link rel="modulepreload" href="js/guide.js">
+<link rel="modulepreload" href="js/story.js">
+<link rel="modulepreload" href="js/tour.js">
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="styles.css">
@@ -224,7 +234,6 @@
   <div class="sheet-body guide-card" id="howto-body"></div>
 </dialog>
 
-<script defer src="vendor/plotly-geo.min.js"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -65,7 +65,7 @@ nav.tabs a[aria-current="page"] { color: var(--ink); font-weight: 600; box-shado
 .chip.more { padding-right: 10px; color: var(--ink-2); }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 6px 12px;
-  border: 1px solid var(--rule-2); border-radius: var(--radius); background: var(--surface); font-size: var(--fs-sm); font-weight: 500;
+  border: 1px solid var(--rule-2); border-radius: var(--radius); background: var(--surface); font-size: var(--fs-sm); font-weight: 400;
   transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
 }
 .btn:hover { border-color: var(--ink-2); }
@@ -138,12 +138,14 @@ nav.tabs a[aria-current="page"] { color: var(--ink); font-weight: 600; box-shado
 .page { max-width: 1440px; margin: 0 auto; padding: var(--sp-5) var(--sp-5) var(--sp-7); }
 .kicker { font: 600 var(--fs-xs)/1 var(--font-ui); color: var(--kicker); letter-spacing: .08em; text-transform: uppercase; }
 h1.headline { font: 600 var(--fs-3xl)/1.15 var(--font-head); margin: var(--sp-2) 0 0; letter-spacing: -.015em; max-width: 32ch; }
+h1.headline { min-height: 2.3em; }   /* reserve two lines: text arrives after data.json */
+.lede { min-height: 2.9em; }
 .lede { font: 400 var(--fs-lg)/1.45 var(--font-head); max-width: 68ch; margin: var(--sp-2) 0 var(--sp-5); color: var(--ink-2); }
 
 .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-4); margin-bottom: var(--sp-6); }
 .kpi { border-top: 1px solid var(--rule-2); padding-top: var(--sp-3); min-width: 0; }
 .kpi .k { font-size: var(--fs-sm); color: var(--ink-2); }
-.kpi .v { font: 500 var(--fs-kpi)/1.1 var(--font-ui); margin: 6px 0 4px; letter-spacing: -.01em; min-height: 1.1em; }
+.kpi .v { font: 400 var(--fs-kpi)/1.1 var(--font-ui); margin: 6px 0 4px; letter-spacing: -.01em; min-height: 1.1em; }
 .kpi .s { font-size: var(--fs-xs); color: var(--muted); }
 
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--sp-6) var(--sp-5); }
@@ -296,7 +298,9 @@ dl.glossary dd i { display: block; font-style: normal; color: var(--muted); font
 .site-foot { border-top: 1px solid var(--rule); margin-top: var(--sp-7); padding: var(--sp-5); font-size: var(--fs-xs); color: var(--muted); text-align: center; }
 
 /* ---------------------------------------------------------------- view transitions */
-.view { animation: fade var(--dur) var(--ease); }
+.view { min-height: 100vh; }   /* footer never jumps */
+/* fade only when switching views, never on the first paint */
+html.animate-views .view { animation: fade var(--dur) var(--ease); }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .view { animation: none; } }
 
@@ -312,7 +316,8 @@ dl.glossary dd i { display: block; font-style: normal; color: var(--muted); font
   nav.tabs a { flex: 1; text-align: center; padding: 10px 4px; }
   .help-fab { bottom: 76px; }
   .page { padding: var(--sp-4) var(--sp-4) 96px; }
-  h1.headline { font-size: var(--fs-2xl); }
+  h1.headline { font-size: var(--fs-2xl); min-height: 4.6em; }
+  .lede { min-height: 7.3em; }
   .kpis { grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
   .kpi .v { font-size: 26px; }
   .plot { height: 300px; }

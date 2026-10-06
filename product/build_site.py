@@ -5,7 +5,8 @@ Build the dashboard data from data/raw, using the same analysis module as the no
     python product/build_site.py
 
 Emits
-    product/site/data.json            every series + every analysis table the site shows
+    product/site/data.json            analysis tables + the DSR-gap series (first screen)
+    product/site/data-series.json     DSR level, credit/GDP, policy-rate and NPL series
     product/site/vendor/world_110m.json  (only if missing) map topology for offline use
 
 Nothing here re-implements analysis: all numbers come from analysis.core.run_all(),
@@ -153,8 +154,13 @@ def main() -> None:
         "npl_corr": records(R.npl_corr),
         "recovery": records(R.recovery),
     }
-    text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
-    (SITE / "data.json").write_text(text, encoding="utf-8")
+    # Two files: everything the first screen needs (headline, KPIs, map, lag, scatter)
+    # in data.json; the long level/credit/policy/NPL series in data-series.json, which
+    # the page fetches after first paint together with the chart library.
+    later = {k: payload["series"].pop(k) for k in ("dsr", "credit", "policy", "npl")}
+    dump = lambda obj: json.dumps(obj, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+    (SITE / "data.json").write_text(dump(payload), encoding="utf-8")
+    (SITE / "data-series.json").write_text(dump({"series": later}), encoding="utf-8")
 
     vendor = SITE / "vendor"
     vendor.mkdir(exist_ok=True)
@@ -163,9 +169,10 @@ def main() -> None:
         import requests
         topo.write_bytes(requests.get(TOPOJSON_URL, timeout=60).content)
 
-    size = (SITE / "data.json").stat().st_size
-    print(f"data.json {size / 1024:,.0f} KB  ({len(countries)} economies, "
-          f"{sum(len(v) for v in payload['series'].values())} series)")
+    sizes = {f: (SITE / f).stat().st_size / 1024 for f in ("data.json", "data-series.json")}
+    n_series = sum(len(v) for v in payload["series"].values()) + sum(len(v) for v in later.values())
+    print(f"data.json {sizes['data.json']:,.0f} KB + data-series.json {sizes['data-series.json']:,.0f} KB "
+          f"= {sum(sizes.values()):,.0f} KB  ({len(countries)} economies, {n_series} series)")
 
 
 if __name__ == "__main__":
