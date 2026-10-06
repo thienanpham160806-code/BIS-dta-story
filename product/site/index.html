@@ -63,23 +63,23 @@
         <button class="iconbtn" id="drawer-close" type="button" aria-label="Đóng bộ lọc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
       <div class="fgroup countries">
         <span class="f-label" id="lbl-c">Nền kinh tế</span>
-        <div class="chips" id="chips" aria-labelledby="lbl-c">
-          <button class="btn ghost-accent" id="country-picker-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="picker">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Chọn nước
-          </button>
-        </div>
+        <button class="cpick" id="country-picker-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="picker" aria-labelledby="lbl-c cpick-sum">
+          <span class="cpick-dots" id="cpick-dots" aria-hidden="true"></span>
+          <span class="cpick-text" id="cpick-sum">Chọn nước</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="chips" id="chips" aria-label="Các nước đang chọn"></div>
       </div>
       <div class="fgroup">
-        <span class="f-label" id="lbl-b">Nhóm người vay</span>
+        <span class="f-label" id="lbl-b">Người vay</span>
         <div class="seg" id="borrower-seg" role="group" aria-labelledby="lbl-b">
-          <button type="button" data-b="P" aria-pressed="true">Tư nhân (P)</button>
-          <button type="button" data-b="H" aria-pressed="false">Hộ gia đình (H)</button>
-          <button type="button" data-b="N" aria-pressed="false">Doanh nghiệp (N)</button>
+          <button type="button" data-b="P" aria-pressed="true" title="P · Khu vực tư nhân phi tài chính">Tư nhân</button>
+          <button type="button" data-b="H" aria-pressed="false" title="H · Hộ gia đình">Hộ gia đình</button>
+          <button type="button" data-b="N" aria-pressed="false" title="N · Doanh nghiệp phi tài chính">Doanh nghiệp</button>
         </div>
-        <span class="seg-note" id="borrower-note" aria-live="polite"></span>
       </div>
       <div class="fgroup">
-        <span class="f-label" id="lbl-y">Khoảng năm</span>
+        <span class="f-label" id="lbl-y">Năm</span>
         <div class="yr" id="year-range" role="group" aria-labelledby="lbl-y">
           <output id="yr-from-out" for="yr-from">…</output>
           <div class="dual">
@@ -91,12 +91,13 @@
         </div>
       </div>
       <div class="fgroup">
-        <span class="f-label" id="lbl-v">Hiển thị DSR</span>
+        <span class="f-label" id="lbl-v">DSR</span>
         <div class="seg" id="mode-toggle" role="group" aria-labelledby="lbl-v">
-          <button type="button" data-v="gap" aria-pressed="true">Độ lệch so với 20 năm</button>
-          <button type="button" data-v="level" aria-pressed="false">Mức DSR</button>
+          <button type="button" data-v="gap" aria-pressed="true" title="Độ lệch so với trung bình 20 năm của chính nước đó">Độ lệch 20 năm</button>
+          <button type="button" data-v="level" aria-pressed="false" title="Mức DSR tuyệt đối — không so giữa các nước">Mức</button>
         </div>
       </div>
+      <p class="seg-note" id="borrower-note" aria-live="polite"></p>
     </div>
   </div>
   <div class="drawer-scrim" id="drawer-scrim" hidden></div>
@@ -120,9 +121,11 @@
 <main id="main" tabindex="-1">
   <!-- ======================================================= dashboard -->
   <section class="view page" id="view-dashboard" data-view="dashboard" aria-labelledby="headline">
-    <div class="kicker">Bảng điều khiển · dữ liệu đến <span data-k="dsr_last">…</span></div>
-    <h1 class="headline" id="headline"><span class="sk-line" style="width:70%"></span></h1>
-    <p class="lede" id="lede"><span class="sk-line" style="width:90%"></span></p>
+    <div class="page-head">
+      <div class="kicker">Bảng điều khiển · dữ liệu đến <span data-k="dsr_last">…</span></div>
+      <h1 class="headline" id="headline"><span class="sk-line" style="width:70%"></span></h1>
+      <p class="lede" id="lede"><span class="sk-line" style="width:90%"></span></p>
+    </div>
 
     <div class="kpis" id="kpis" aria-live="polite">
       <div class="kpi"><div class="k">Nền kinh tế đang chọn</div><div class="v" id="kpi-n"><span class="sk-line" style="width:3ch"></span></div><div class="s" id="kpi-n-s">&nbsp;</div></div>
@@ -131,15 +134,28 @@
       <div class="kpi"><div class="k">Chuỗi bị cắt cụt</div><div class="v" id="kpi-cens"><span class="sk-line" style="width:2ch"></span></div><div class="s" id="kpi-cens-s">&nbsp;</div></div>
     </div>
 
-    <div class="grid">
+    <section class="dsec" aria-labelledby="sec-1">
+      <div class="sec-head"><span class="sec-no" aria-hidden="true">01</span><div><h2 class="sec-title" id="sec-1">Gánh nặng trả nợ hiện tại</h2><p class="sec-dek">So với mức bình thường 20 năm của chính từng nền kinh tế — cách so sánh BIS khuyến nghị.</p></div></div>
+      <div class="grid">
       <article class="card w7" id="card-dsr" data-chart="dsr">
         <header><div><h2 id="t-dsr">Gánh nặng trả nợ (DSR)</h2><p class="dek" id="d-dsr"></p></div>
           <button class="howto" type="button" data-guide="dsr" aria-label="Cách đọc biểu đồ gánh nặng trả nợ">ⓘ Cách đọc</button></header>
         <div class="plot tall" id="p-dsr"><div class="skeleton"></div></div>
         <p class="note" id="n-dsr"></p>
-        <footer id="f-dsr">Nguồn: BIS WS_DSR 1.0 · Đơn vị: điểm phần trăm (pp) so với trung bình 80 quý gần nhất của chính nước đó · Đường chấm: tháng bắt đầu tăng lãi suất</footer>
+        <footer id="f-dsr">Nguồn: BIS WS_DSR 1.0 · Đơn vị: điểm phần trăm (pp) so với trung bình 80 quý gần nhất của chính nước đó · ○ trên đường: quý bắt đầu tăng lãi suất</footer>
       </article>
-
+      <article class="card w5" id="card-map" data-chart="map">
+        <header><div><h2 id="t-map">Bản đồ độ lệch DSR</h2><p class="dek" id="d-map"></p></div>
+          <button class="howto" type="button" data-guide="map" aria-label="Cách đọc bản đồ">ⓘ Cách đọc</button></header>
+        <div class="plot" id="p-map"><div class="skeleton"></div></div>
+        <details class="table-view"><summary>Xem bảng số liệu của bản đồ</summary><div class="tbl-wrap" id="tbl-map"></div></details>
+        <footer>Nguồn: BIS WS_DSR 1.0 · Đơn vị: điểm phần trăm (pp) · Xám: không có số liệu DSR · Hong Kong vẽ bằng chấm tròn vì quá nhỏ ở tỉ lệ này</footer>
+      </article>
+      </div>
+    </section>
+    <section class="dsec" aria-labelledby="sec-2">
+      <div class="sec-head"><span class="sec-no" aria-hidden="true">02</span><div><h2 class="sec-title" id="sec-2">Truyền dẫn từ lãi suất</h2><p class="sec-dek">Lãi suất tăng bao nhiêu, và gánh nặng trả nợ mất bao lâu mới lên đỉnh.</p></div></div>
+      <div class="grid">
       <article class="card w5" id="card-lag" data-chart="lag">
         <header><div><h2 id="t-lag">Độ trễ truyền dẫn</h2><p class="dek" id="d-lag"></p></div>
           <button class="howto" type="button" data-guide="lag" aria-label="Cách đọc biểu đồ độ trễ">ⓘ Cách đọc</button></header>
@@ -148,15 +164,29 @@
         <p class="note" id="n-lag"></p>
         <footer>Nguồn: BIS WS_DSR 1.0, WS_CBPOL 1.0 · Đơn vị: quý (±1 quý) · Chu kỳ tăng bắt đầu trong <span data-k="cycle_window">…</span></footer>
       </article>
-
-      <article class="card" id="card-map" data-chart="map">
-        <header><div><h2 id="t-map">Bản đồ độ lệch DSR</h2><p class="dek" id="d-map"></p></div>
-          <button class="howto" type="button" data-guide="map" aria-label="Cách đọc bản đồ">ⓘ Cách đọc</button></header>
-        <div class="plot tall" id="p-map"><div class="skeleton"></div></div>
-        <details class="table-view"><summary>Xem bảng số liệu của bản đồ</summary><div class="tbl-wrap" id="tbl-map"></div></details>
-        <footer>Nguồn: BIS WS_DSR 1.0 · Đơn vị: điểm phần trăm (pp) · Xám: không có số liệu DSR · Hong Kong vẽ bằng chấm tròn vì quá nhỏ ở tỉ lệ này</footer>
+      <article class="card w7" id="card-policy" data-chart="policy">
+        <header><div><h2 id="t-policy">Lãi suất chính sách</h2><p class="dek" id="d-policy"></p></div>
+          <button class="howto" type="button" data-guide="policy" aria-label="Cách đọc biểu đồ lãi suất chính sách">ⓘ Cách đọc</button></header>
+        <div class="plot" id="p-policy"><div class="skeleton"></div></div>
+        <p class="note" id="n-policy"></p>
+        <footer>Nguồn: BIS WS_CBPOL 1.0, cuối tháng · Đơn vị: % / năm · Khu vực euro: lãi suất ECB từ năm gia nhập (theo ECB)</footer>
       </article>
-
+      <article class="card w12" id="card-scatter" data-chart="scatter">
+        <header><div><h2 id="t-scatter">Liên quốc gia</h2><p class="dek" id="d-scatter"></p></div>
+          <button class="howto" type="button" data-guide="scatter" aria-label="Cách đọc biểu đồ liên quốc gia">ⓘ Cách đọc</button></header>
+        <div class="seg" id="scatter-y" role="group" aria-label="Trục dọc">
+          <button type="button" data-y="rise" aria-pressed="true">DSR tăng (pp)</button>
+          <button type="button" data-y="lag" aria-pressed="false">Độ trễ (quý)</button>
+        </div>
+        <div class="plot tall" id="p-scatter"><div class="skeleton"></div></div>
+        <p class="note" id="n-scatter"></p>
+        <footer>Nguồn: BIS WS_DSR 1.0, WS_CBPOL 1.0 · Trục ngang thang log · Tương quan mô tả, không phải nhân quả</footer>
+      </article>
+      </div>
+    </section>
+    <section class="dsec" aria-labelledby="sec-3">
+      <div class="sec-head"><span class="sec-no" aria-hidden="true">03</span><div><h2 class="sec-title" id="sec-3">Bối cảnh và kiểm tra chéo</h2><p class="sec-dek">Quy mô nợ, nợ xấu, và dữ liệu nào đang có hoặc đang thiếu.</p></div></div>
+      <div class="grid">
       <article class="card w6" id="card-credit" data-chart="credit">
         <header><div><h2 id="t-credit">Tín dụng / GDP</h2><p class="dek" id="d-credit"></p></div>
           <button class="howto" type="button" data-guide="credit" aria-label="Cách đọc biểu đồ tín dụng trên GDP">ⓘ Cách đọc</button></header>
@@ -164,15 +194,6 @@
         <p class="note" id="n-credit"></p>
         <footer>Nguồn: BIS WS_TC 2.0 (mọi bên cho vay, giá thị trường, đã điều chỉnh gãy chuỗi) · Đơn vị: % GDP</footer>
       </article>
-
-      <article class="card w6" id="card-policy" data-chart="policy">
-        <header><div><h2 id="t-policy">Lãi suất chính sách</h2><p class="dek" id="d-policy"></p></div>
-          <button class="howto" type="button" data-guide="policy" aria-label="Cách đọc biểu đồ lãi suất chính sách">ⓘ Cách đọc</button></header>
-        <div class="plot" id="p-policy"><div class="skeleton"></div></div>
-        <p class="note" id="n-policy"></p>
-        <footer>Nguồn: BIS WS_CBPOL 1.0, cuối tháng · Đơn vị: % / năm · Khu vực euro: lãi suất ECB từ năm gia nhập (theo ECB)</footer>
-      </article>
-
       <article class="card w6" id="card-npl" data-chart="npl">
         <header><div><h2 id="t-npl">Nợ xấu (NPL)</h2><p class="dek" id="d-npl"></p></div>
           <button class="howto" type="button" data-guide="npl" aria-label="Cách đọc biểu đồ nợ xấu">ⓘ Cách đọc</button></header>
@@ -181,26 +202,14 @@
         <p class="note" id="n-npl"></p>
         <footer>Nguồn: World Bank FB.AST.NPER.ZS · Đơn vị: % tổng dư nợ ngân hàng · Số năm · Tương quan chỉ mang tính mô tả</footer>
       </article>
-
-      <article class="card w6" id="card-scatter" data-chart="scatter">
-        <header><div><h2 id="t-scatter">Liên quốc gia</h2><p class="dek" id="d-scatter"></p></div>
-          <button class="howto" type="button" data-guide="scatter" aria-label="Cách đọc biểu đồ liên quốc gia">ⓘ Cách đọc</button></header>
-        <div class="seg" id="scatter-y" role="group" aria-label="Trục dọc" style="margin-bottom:8px">
-          <button type="button" data-y="rise" aria-pressed="true">DSR tăng (pp)</button>
-          <button type="button" data-y="lag" aria-pressed="false">Độ trễ (quý)</button>
-        </div>
-        <div class="plot" id="p-scatter"><div class="skeleton"></div></div>
-        <p class="note" id="n-scatter"></p>
-        <footer>Nguồn: BIS WS_DSR 1.0, WS_CBPOL 1.0 · Trục ngang thang log · Tương quan mô tả, không phải nhân quả</footer>
-      </article>
-
-      <article class="card" id="card-coverage" data-chart="coverage">
+      <article class="card w12" id="card-coverage" data-chart="coverage">
         <header><div><h2 id="t-coverage">Độ phủ dữ liệu và kỳ mới nhất</h2><p class="dek" id="d-coverage"></p></div>
           <button class="howto" type="button" data-guide="coverage" aria-label="Cách đọc bảng độ phủ dữ liệu">ⓘ Cách đọc</button></header>
         <div class="tbl-wrap" id="tbl-coverage"><span class="sk-line" style="width:100%;height:120px"></span></div>
         <footer>% thiếu = số kỳ không có giá trị / số kỳ đáng lẽ có trong khoảng năm đang chọn (tính tới kỳ mới nhất của bộ dữ liệu)</footer>
       </article>
-    </div>
+      </div>
+    </section>
   </section>
 
   <!-- ======================================================= story -->

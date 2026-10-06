@@ -63,7 +63,7 @@ export function renderStory(I) {
       ${esc(name(top))} là nơi gánh nặng còn xa mức bình thường nhất.</p>
     <figure><h3>${esc(name(top))} vẫn cao hơn mức nền 20 năm ${vn(rec(`${top}_P`).gap_now, 1)} điểm %</h3>
       <div class="plot" id="s-gap"><div class="skeleton"></div></div>
-      <figcaption>DSR khu vực tư nhân (P), chênh lệch so với trung bình 80 quý gần nhất của chính nước đó, điểm phần trăm. Đường chấm: tháng ngân hàng trung ương bắt đầu tăng lãi suất. Nguồn: BIS WS_DSR 1.0.</figcaption></figure>
+      <figcaption>DSR khu vực tư nhân (P), chênh lệch so với trung bình 80 quý gần nhất của chính nước đó, điểm phần trăm. Vòng tròn rỗng trên đường: quý ngân hàng trung ương bắt đầu tăng lãi suất. Nguồn: BIS WS_DSR 1.0.</figcaption></figure>
     <div class="callout"><p>Vì sao so <b>độ lệch</b> chứ không so mức DSR? Mỗi nước đo thu nhập và cấu trúc khoản vay khác nhau, nên DSR ${vn(rec("HK_P").latest, 1)}% của Hong Kong và ${vn(rec("TH_P").latest, 1)}% của Thái Lan không nói nước nào "nặng nợ" hơn. BIS khuyến nghị so với lịch sử của chính nước đó.</p></div>
 
     <h2>2. Nợ nhiều không có nghĩa là trả nợ nặng</h2>
@@ -143,7 +143,7 @@ export function renderStoryFigures(I) {
   const ds = D.series.gap;
   timeSeries($("#s-gap"), ctx, {
     get: (k) => ds[`${k}_P`], freq: "Q", unit: "pp so với mức nền", hoverFmt: "+.1f", labelFmt: (v) => vn(v, 1, true),
-    tickSuffix: " pp", zero: true, vlines: FOCUS.map((k) => ({ x: cyc[k].liftoff, color: colorOf(slots, k) })), emptyCell: "",
+    tickSuffix: " pp", zero: true, rings: FOCUS.map((k) => ({ k, x: I.lag[`${k}_P`]?.liftoff_q })).filter((r) => r.x), emptyCell: "",
   });
   const pctx = { ...ctx, s: { ...ctx.s, from: 2019 } };
   const groups = [...FOCUS.map((k) => ({ keys: [k], label: name(k), color: colorOf(slots, k) })),

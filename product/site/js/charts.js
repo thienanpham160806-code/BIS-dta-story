@@ -14,7 +14,7 @@ export function plotTemplate() {
   const font = css("--font-ui");
   const axis = () => ({
     gridcolor: css("--chart-grid"), linecolor: css("--chart-axis"), zerolinecolor: css("--ink-2"), zerolinewidth: 1,
-    tickfont: { color: css("--muted"), size: 12 }, title: { font: { color: css("--ink-2"), size: 12 } },
+    tickfont: { color: css("--ink-2"), size: 12 }, title: { font: { color: css("--ink-2"), size: 12 } },
     automargin: true, fixedrange: true,
   });
   return {
@@ -22,7 +22,7 @@ export function plotTemplate() {
     font: { family: font, size: 12.5, color: css("--ink-2") },
     separators: ",.",
     margin: { l: 8, r: 12, t: 8, b: 8 },
-    xaxis: { ...axis(), showgrid: false },
+    xaxis: { ...axis(), showgrid: false, showline: true, ticks: "outside", ticklen: 4, tickcolor: css("--chart-axis") },
     yaxis: { ...axis(), zeroline: false },
     hoverlabel: { bgcolor: css("--surface"), bordercolor: css("--rule-2"), font: { family: font, color: css("--ink"), size: 13 }, align: "left" },
     hovermode: "closest", showlegend: false, dragmode: false,
@@ -76,17 +76,28 @@ export function timeSeries(el, ctx, o) {
     traces.push({
       x: d.pts.x, y: d.pts.y, customdata: custom, type: "scatter",
       mode: o.freq === "A" ? "lines+markers" : "lines", connectgaps: false,
-      line: { color: d.color, width: 2, shape: o.freq === "M" ? "hv" : "linear" },
+      line: { color: d.color, width: 2.25, shape: o.freq === "M" ? "hv" : "linear" },
       marker: { size: 7, color: d.color, line: { color: css("--surface"), width: 1.5 } },
       name: d.label,
       hovertemplate: `<b>${esc(d.label)}</b><br>%{customdata}: %{y:${o.hoverFmt}}${o.unit ? " " + o.unit : ""}<extra></extra>`,
     });
   });
+  if (o.freq !== "A") traces.push({
+    x: have.map((d) => d.last.x), y: have.map((d) => d.last.y), type: "scatter", mode: "markers", hoverinfo: "skip",
+    marker: { size: 7, color: have.map((d) => d.color), line: { color: css("--bg"), width: 1.5 } } });
+  (o.rings || []).forEach((r) => {
+    const d = have.find((h) => h.keys.includes(r.k));
+    const i = d ? d.pts.x.indexOf(r.x) : -1;
+    if (i >= 0 && d.pts.y[i] !== null) traces.push({
+      x: [r.x], y: [d.pts.y[i]], type: "scatter", mode: "markers", customdata: [[d.label, periodLabel(r.x, "Q")]],
+      marker: { size: 11, color: css("--bg"), line: { color: d.color, width: 2.2 } },
+      hovertemplate: "<b>%{customdata[0]}</b><br>Bắt đầu tăng lãi suất: %{customdata[1]}<extra></extra>" });
+  });
   const ys = have.flatMap((d) => d.pts.y.filter((v) => v !== null));
   const span = Math.max(...ys) - Math.min(...ys) || 1;
   declutter(have.map((d) => ({ d, y: d.last.y })), span).forEach(({ d, ly }) => {
     ann.push({ x: d.last.x, y: ly, xanchor: "left", xshift: 8, showarrow: false, align: "left",
-      text: `<b>${esc(d.label)}</b> ${o.labelFmt(d.last.y)}`, font: { size: 12, color: css("--ink") } });
+      text: `<b>${esc(d.label)}</b> ${o.labelFmt(d.last.y)}`, font: { size: 12.5, color: css("--ink") } });
   });
   (o.vlines || []).forEach((v) => shapes.push({ type: "line", x0: v.x, x1: v.x, yref: "paper", y0: 0, y1: 1,
     line: { color: v.color, width: 1.2, dash: "dot" } }));
@@ -151,20 +162,19 @@ export function gapHeadline(ctx) {
     return `${top.name} ${top.gap >= 0 ? "cao hơn" : "thấp hơn"} mức nền 20 năm ${vn(Math.abs(top.gap))} điểm % (${q})`;
   }
   if (top.gap < 0) return `Cả ${g.length} nền kinh tế đang chọn đều có DSR thấp hơn mức nền 20 năm (${q})`;
-  return `${top.name} vẫn cao hơn mức nền 20 năm ${vn(top.gap)} điểm % — cao nhất trong ${g.length} nền kinh tế đang chọn`;
+  return `${top.name} vẫn cao hơn mức nền 20 năm ${vn(top.gap)} điểm % — cao nhất trong ${g.length} nước đang chọn`;
 }
 
 export function renderDSR(ctx) {
-  const { I, s, slots } = ctx;
+  const { I, s } = ctx;
   const el = $("#p-dsr");
   const gap = s.v === "gap";
   const ds = gap ? I.D.series.gap : I.D.series.dsr;
-  const vlines = s.c.length <= MAX_LINES ? s.c.map((k) => ({ x: I.D.cycles[k]?.liftoff, color: colorOf(slots, k) }))
-    .filter((v) => v.x && v.x >= `${s.from}-01-01` && v.x <= `${s.to}-12-31`) : [];
+  const rings = s.c.map((k) => ({ k, x: I.lag[`${k}_${s.b}`]?.liftoff_q })).filter((r) => r.x);
   const r = timeSeries(el, ctx, {
     get: (k) => ds[`${k}_${s.b}`], freq: "Q", unit: gap ? "pp so với mức nền" : "% thu nhập",
     hoverFmt: gap ? "+.1f" : ".1f", labelFmt: (v) => (gap ? vn(v, 1, true) : vn(v, 1) + "%"),
-    tickSuffix: gap ? " pp" : "%", zero: gap, vlines, emptyCell: `Không có DSR ${s.b}`,
+    tickSuffix: gap ? " pp" : "%", zero: gap, rings, emptyCell: `Không có DSR ${s.b}`,
   });
   if (!r.have.length) {
     const hint = s.b !== "P" ? `BIS chỉ công bố DSR ${s.b} cho một số nước. Thử nhóm P.` : "Các nước đang chọn không có số liệu DSR trong khoảng năm này.";
@@ -172,7 +182,7 @@ export function renderDSR(ctx) {
   }
   const lg = latestGaps(ctx);
   const up = lg.filter((x) => x.gap > 0).length;
-  $("#t-dsr").textContent = !gap ? "Mức DSR theo thời gian — chỉ đọc trong từng nước, không so giữa các nước"
+  $("#t-dsr").textContent = !gap ? "Mức DSR theo thời gian — chỉ đọc trong từng nước"
     : !lg.length ? "Gánh nặng trả nợ (DSR)"
     : lg.length === 1 ? `${lg[0].name}: DSR ${BORROWER[s.b]} so với mức nền 20 năm qua các năm`
     : up === lg.length ? `Cả ${lg.length} nước đang chọn vẫn có DSR cao hơn mức nền 20 năm`
@@ -181,8 +191,7 @@ export function renderDSR(ctx) {
   $("#d-dsr").textContent = gap
     ? `DSR ${BORROWER[s.b]}, chênh lệch so với trung bình 80 quý gần nhất của chính nước đó.`
     : `DSR ${BORROWER[s.b]}, % thu nhập dành trả gốc + lãi. Mức tuyệt đối không so được giữa các nước — chuyển sang "Độ lệch" để so.`;
-  $("#f-dsr").textContent = `Nguồn: BIS WS_DSR 1.0 · Đơn vị: ${gap ? "điểm phần trăm (pp) so với trung bình 80 quý gần nhất của chính nước đó" : "% thu nhập"}${
-    vlines.length ? " · Đường chấm: tháng bắt đầu tăng lãi suất" : ""}`;
+  $("#f-dsr").textContent = `Nguồn: BIS WS_DSR 1.0 · Đơn vị: ${gap ? "điểm phần trăm (pp) so với trung bình 80 quý gần nhất của chính nước đó" : "% thu nhập"} · ○ trên đường: quý bắt đầu tăng lãi suất`;
   $("#n-dsr").innerHTML = [missingNote(r.missing, `DSR ${s.b}`), r.multiples ? `Hơn ${MAX_LINES} nước: hiển thị dạng lưới nhỏ, cùng thang trục.` : ""].filter(Boolean).join(" ");
 }
 
@@ -202,7 +211,7 @@ export function renderCredit(ctx) {
   if (ch.length) {
     const top = ch.reduce((a, b) => (Math.abs(a.delta) > Math.abs(b.delta) ? a : b));
     $("#t-credit").textContent = `${top.d.label}: tín dụng/GDP ${top.delta >= 0 ? "tăng" : "giảm"} ${vn(Math.abs(top.delta))} điểm % từ ${qLabel(top.from)}${
-      ch.length > 1 ? " — thay đổi lớn nhất trong các nước đang chọn" : ""}`;
+      ch.length > 1 ? ", nhiều nhất nhóm" : ""}`;
   } else $("#t-credit").textContent = "Tín dụng / GDP";
   $("#d-credit").textContent = `Dư nợ ${BORROWER[s.b]}, % GDP. Đo quy mô nợ, không đo chi phí trả nợ.`;
   $("#n-credit").innerHTML = missingNote(r.missing, `tín dụng ${s.b}`);
@@ -240,7 +249,7 @@ export function renderPolicy(ctx) {
     const win = `${I.D.meta.cycle_window[0].slice(0, 4)}–${I.D.meta.cycle_window[1].slice(0, 4)}`;
     $("#t-policy").textContent = tops.length > 1
       ? `${listJoin(tops, 3)} cùng tăng lãi suất nhiều nhất trong chu kỳ ${win}: +${vn(max, 2)} điểm %`
-      : `${tops[0]} tăng lãi suất mạnh nhất trong chu kỳ ${win}: +${vn(max, 2)} điểm %${cyc.length > 1 ? ` (${cyc.length} nước đang chọn có chu kỳ tăng)` : ""}`;
+      : `${tops[0]} tăng lãi suất nhiều nhất trong chu kỳ ${win}: +${vn(max, 2)} điểm %`;
   } else $("#t-policy").textContent = "Không nước nào đang chọn có chu kỳ tăng lãi suất 2021–2023";
   $("#d-policy").textContent = "Lãi suất điều hành cuối tháng. Các nước dùng chung một lãi suất được gộp thành một đường.";
   const notes = s.c.map((k) => I.C[k]).filter((c) => c.policy_note && !c.euro)
@@ -266,16 +275,15 @@ export function renderNPL(ctx) {
   $("#d-npl").textContent = "Tỷ lệ nợ xấu ngân hàng, số năm — dùng để kiểm tra chéo với DSR.";
   const rows = s.c.map((k) => ({ k, r: I.npl[k] })).filter((x) => x.r);
   const ci = (r, lo, hi) => (Number.isFinite(r) ? `${vn(r, 2, true)} <span class="na">[${Number.isFinite(lo) ? vn(lo, 2) : "—"}; ${Number.isFinite(hi) ? vn(hi, 2) : "—"}]</span>` : "—");
-  $("#tbl-npl").innerHTML = rows.length ? `<table class="data"><caption class="sr-only">Tương quan NPL và DSR (P)</caption><thead><tr>
-      <th scope="col">Tương quan NPL ↔ DSR (P)</th><th scope="col">Năm</th><th scope="col">Mức: r [KTC 95%]</th><th scope="col">n</th><th scope="col">Biến động: r [KTC 95%]</th><th scope="col">n</th></tr></thead><tbody>${
-      rows.map(({ k, r }) => `<tr><td>${esc(I.C[k].vi)}</td><td>${esc(r.years)}</td><td>${ci(r.r_level, r.lo_level, r.hi_level)}</td><td>${r.n_level}</td>
-        <td>${ci(r.r_change, r.lo_change, r.hi_change)}</td><td>${r.n_change}</td></tr>`).join("")}</tbody></table>` : "";
+  $("#tbl-npl").innerHTML = rows.length ? `<table class="data"><caption class="sr-only">Tương quan biến động năm giữa NPL và DSR (P)</caption><thead><tr>
+      <th scope="col">NPL ↔ DSR (P)</th><th scope="col">Năm</th><th scope="col">r biến động năm [KTC 95%]</th><th scope="col">n</th></tr></thead><tbody>${
+      rows.map(({ k, r }) => `<tr><td>${esc(I.C[k].vi)}</td><td>${esc(r.years)}</td><td>${ci(r.r_change, r.lo_change, r.hi_change)}</td><td>${r.n_change}</td></tr>`).join("")}</tbody></table>` : "";
   const newest = Math.max(...Object.values(I.D.series.npl).map((sr) => +expand(sr, "A").x.at(-1).slice(0, 4)));
   const endYear = Math.min(s.to, newest);
   const late = r.have.filter((d) => +d.last.x.slice(0, 4) < endYear).map((d) => `${d.label} (đến ${d.last.x.slice(0, 4)})`);
   $("#n-npl").innerHTML = [missingNote(r.missing, "NPL"),
     late.length ? `<span class="miss">World Bank chưa công bố các năm gần nhất:</span> ${esc(late.join(", "))} — để trống, không nối dài.` : "",
-    rows.length ? "Bảng tương quan chỉ mang tính mô tả: n nhỏ, khoảng tin cậy Fisher z." : ""].filter(Boolean).join("<br>");
+    rows.length ? "Tương quan chỉ mang tính mô tả: n nhỏ, khoảng tin cậy Fisher z. Tương quan theo mức có trong notebook." : ""].filter(Boolean).join("<br>");
 }
 
 /* ------------------------------------------------------------------ lag */
@@ -294,23 +302,23 @@ export function drawLagDots(el, ctx, b) {
   const pts = I.D.lags.filter((r) => r.borrower === b && r.has_cycle && !r.no_rise).sort((a, z) => a.lag_q - z.lag_q || a.iso2.localeCompare(z.iso2));
   if (!pts.length) { emptyState(el, "Không có độ trễ đo được", `Không nước nào có DSR ${b} với đỉnh truyền dẫn đo được.`); return; }
   const narrow = el.clientWidth < 520;
-  const big = narrow ? 17 : 22, small = narrow ? 13 : 18;
+  const big = narrow ? 20 : 24, small = narrow ? 10 : 12;
   const stack = {};
   const X = [], Y = [], fill = [], line = [], size = [], text = [], tcol = [], cd = [];
   pts.forEach((r) => {
     stack[r.lag_q] = (stack[r.lag_q] || 0) + 1;
     const sel = s.c.includes(r.iso2);
     const col = sel ? colorOf(slots, r.iso2) : css("--muted");
-    X.push(r.lag_q); Y.push(stack[r.lag_q]); text.push(r.iso2);
+    X.push(r.lag_q); Y.push(stack[r.lag_q]); text.push(sel ? r.iso2 : "");
     const solid = sel && !r.censored;
-    fill.push(r.censored ? css("--surface") : sel ? col : css("--surface-2"));
+    fill.push(r.censored ? css("--bg") : sel ? col : css("--chart-axis"));
     tcol.push(solid ? "#ffffff" : css("--ink-2"));
     line.push(col); size.push(sel ? big : small);
     cd.push([I.C[r.iso2].vi, r.censored ? " (cắt cụt — cận dưới)" : "", qLabel(r.liftoff_q), qLabel(r.peak_q)]);
   });
   const L = plotTemplate();
   L.margin = { l: 8, r: 8, t: 26, b: 8 };
-  L.yaxis = { visible: false, range: [0.3, Math.max(...Y) + 0.9], fixedrange: true };
+  L.yaxis = { visible: false, range: [0.2, Math.max(...Y) + 1.1], fixedrange: true };
   L.xaxis = { ...L.xaxis, type: "linear", dtick: 2, title: { text: "quý từ lúc bắt đầu tăng lãi suất đến đỉnh DSR", font: { size: 12, color: css("--ink-2") } },
     range: [Math.min(-0.8, Math.min(...X) - 0.8), Math.max(...X) + 0.8] };
   const u = dist.uncensored;
@@ -337,11 +345,11 @@ export function renderLag(ctx) {
   const m = median(measured);
   const g = dist.uncensored;
   $("#t-lag").textContent = measured.length
-    ? `Các nước đang chọn: DSR đạt đỉnh trung vị ${vn(m, 1).replace(",0", "")} quý sau khi tăng lãi suất (toàn cầu: ${vn(g.median, 1).replace(",0", "")} quý, n = ${g.n})`
-    : `Chưa nước đang chọn nào có độ trễ đo được với DSR ${b} (toàn cầu: ${vn(g.median, 1).replace(",0", "")} quý, n = ${g.n})`;
-  $("#d-lag").textContent = `Mỗi chấm là một nền kinh tế (DSR ${b}). Vùng tô: khoảng tứ phân vị; chấm rỗng: bị cắt cụt.`;
+    ? `Gánh nặng đạt đỉnh sau trung vị ${vn(m, 1).replace(",0", "")} quý ở các nước đang chọn, ${vn(g.median, 1).replace(",0", "")} quý trên toàn cầu`
+    : `Chưa nước đang chọn nào có độ trễ đo được (toàn cầu: ${vn(g.median, 1).replace(",0", "")} quý)`;
+  $("#d-lag").textContent = `Mỗi chấm là một nền kinh tế (DSR ${b}, n = ${g.n} đo được). Vùng tô: khoảng tứ phân vị; chấm rỗng: bị cắt cụt.`;
   $("#tbl-lag").innerHTML = mine.length ? `<table class="data"><caption class="sr-only">Độ trễ của các nước đang chọn</caption><thead><tr>
-    <th scope="col">Nước</th><th scope="col">Bắt đầu tăng</th><th scope="col">Đỉnh DSR</th><th scope="col">Độ trễ</th><th scope="col">DSR tăng</th><th scope="col">Trạng thái</th></tr></thead><tbody>${
+    <th scope="col">Nước</th><th scope="col">Tăng LS</th><th scope="col">Đỉnh DSR</th><th scope="col">Trễ</th><th scope="col">DSR +</th><th scope="col"><span class="sr-only">Trạng thái</span></th></tr></thead><tbody>${
     mine.map(({ k, r }) => { const st = lagStatus(r); const ok = st.key === "ok" || st.key === "cens";
       return `<tr><td><span class="dot" style="background:${colorOf(slots, k)}"></span>${esc(I.C[k].vi)}</td>
         <td>${r?.liftoff ? periodLabel(r.liftoff, "M") : "—"}</td><td>${ok ? qLabel(r.peak_q) : "—"}</td>
@@ -419,7 +427,9 @@ export function renderMap(ctx) {
     type: "choropleth", locations: onMap.map((x) => x.c.iso3), z: onMap.map((x) => x.v), zmin: -lim, zmax: lim, colorscale: scale,
     customdata: onMap.map((x) => x.c.vi), marker: { line: { color: selC, width: selW } },
     hovertemplate: `<b>%{customdata}</b><br>${qLabel(q)}: %{z:+.1f} pp so với mức nền 20 năm<extra></extra>`,
-    colorbar: { thickness: 10, len: 0.75, ticksuffix: " pp", outlinewidth: 0, tickfont: { color: css("--muted") } },
+    colorbar: { orientation: "h", thickness: 8, len: 0.5, x: 0.5, xanchor: "center", y: -0.02, yanchor: "top",
+      ticksuffix: " pp", outlinewidth: 0, tickfont: { color: css("--ink-2"), size: 11 }, tickangle: 0,
+      tickvals: [-lim, -lim / 2, 0, lim / 2, lim] },
   }];
   if (hk) traces.push({ type: "scattergeo", lon: [114.17], lat: [22.32], mode: "markers",
     marker: { size: 12, color: [hk.v], cmin: -lim, cmax: lim, colorscale: scale, line: { color: css("--ink"), width: s.c.includes("HK") ? 2.2 : 1 } },
@@ -427,11 +437,13 @@ export function renderMap(ctx) {
   const L = plotTemplate();
   L.margin = { l: 0, r: 0, t: 0, b: 0 };
   L.geo = { projection: { type: "natural earth" }, showframe: false, showcoastlines: false, showland: true, landcolor: css("--map-nodata"),
-    showcountries: true, countrycolor: css("--surface"), countrywidth: 0.5, bgcolor: "rgba(0,0,0,0)", lataxis: { range: [-57, 84] } };
+    showcountries: true, countrycolor: css("--bg"), countrywidth: 0.6, bgcolor: "rgba(0,0,0,0)",
+    lataxis: { range: [-50, 78] }, lonaxis: { range: [-165, 180] } };
+  L.margin = { l: 0, r: 0, t: 0, b: 34 };
   plot(el, traces, L, { topojsonURL: "vendor/" });
   const above = vals.filter((x) => x.v > 0).length;
-  $("#t-map").textContent = `${above}/${vals.length} nền kinh tế có DSR ${BORROWER[s.b]} cao hơn mức nền 20 năm (${qLabel(q)})`;
-  $("#d-map").textContent = `Quý tô màu = quý cuối của khoảng năm đang chọn có số liệu. Đỏ: cao hơn mức bình thường của chính nước đó · Xanh: thấp hơn · Xám: không có DSR ${s.b}. Nước đang chọn có viền đậm.`;
+  $("#t-map").textContent = `${above}/${vals.length} nền kinh tế vẫn trên mức nền 20 năm (${qLabel(q)})`;
+  $("#d-map").textContent = `DSR ${BORROWER[s.b]}. Đỏ: cao hơn mức bình thường của chính nước đó · xanh: thấp hơn · xám: không có số liệu. Viền đậm: nước đang chọn.`;
   const sorted = [...vals].sort((a, z) => z.v - a.v);
   $("#tbl-map").innerHTML = `<table class="data"><caption class="sr-only">Độ lệch DSR ${qLabel(q)}</caption><thead><tr><th scope="col">Nước</th><th scope="col">Độ lệch (pp)</th><th scope="col">Trên/dưới mức nền</th></tr></thead><tbody>${
     sorted.map((x) => `<tr><td>${esc(x.c.vi)}${s.c.includes(x.c.iso2) ? " ◆" : ""}</td><td>${vn(x.v, 1, true)}</td><td>${x.v > 0 ? "▲ cao hơn" : "▼ thấp hơn"}</td></tr>`).join("")}</tbody></table>`;

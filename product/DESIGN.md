@@ -83,3 +83,15 @@ Lỗi: thông báo + nút "Thử lại", không bao giờ để trắng trang.
 
 Lighthouse Accessibility ≥ 90, Performance ≥ 85 · chữ đạt WCAG AA · điều khiển toàn bộ bằng bàn phím (focus ring
 3px màu nhấn) · 375px không cuộn ngang · ảnh chụp desktop + mobile × sáng + tối trước khi merge.
+
+## Lượt chỉnh giao diện thứ 2 (sau khi xem bản chạy thật)
+
+- **Thanh bộ lọc một dòng** (≥ 1024px): chọn nước gói gọn thành một nút có chấm màu + tên; nhãn chỉ hiện trong
+  ngăn kéo mobile, trên desktop mỗi điều khiển có `aria-label`/`title`.
+- **Tiêu đề trang** 40px, `text-wrap: balance` (không còn chữ rớt dòng), hai dòng tối đa.
+- **Hàng KPI** dùng số serif 46px, đơn vị nhỏ bên cạnh, ▲/▼ theo màu phân kỳ kèm chữ cho trình đọc màn hình.
+- **Ba phần đánh số**: 01 Gánh nặng hiện tại · 02 Truyền dẫn từ lãi suất · 03 Bối cảnh và kiểm tra chéo.
+- **Biểu đồ**: mốc tăng lãi suất là vòng tròn rỗng trên chính đường của nước đó (thay cho 4 vạch dọc 4 màu);
+  chấm ở cuối mỗi đường; biểu đồ độ trễ chỉ ghi nhãn nước đang chọn; bản đồ cắt bớt vùng cực, thanh màu nằm ngang,
+  đất "không có dữ liệu" nhạt hơn để nước có số liệu nổi lên.
+

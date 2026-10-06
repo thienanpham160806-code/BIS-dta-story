@@ -104,15 +104,18 @@ function paintYears(a, z, I) {
 
 /** Reflect state into every control (called after each state change). */
 export function syncFilters(I, s, slots) {
-  // chips
-  const chips = $("#chips"), pbtn = $("#country-picker-btn");
-  $$(".chip", chips).forEach((c) => c.remove());
+  // picker button: colour dots + names (the chips below are shown in the mobile drawer)
+  const names = s.c.map((k) => I.C[k].vi);
+  $("#cpick-dots").innerHTML = s.c.slice(0, 6).map((k) => `<i style="background:${colorOf(slots, k)}"></i>`).join("");
+  $("#cpick-sum").textContent = !s.c.length ? "Chọn nước"
+    : s.c.length <= 4 ? names.join(", ") : `${names.slice(0, 3).join(", ")} +${s.c.length - 3}`;
+  const chips = $("#chips");
+  chips.innerHTML = "";
   const MAXCHIPS = 10;
   const html = s.c.slice(0, MAXCHIPS).map((k) => `<span class="chip"><span class="dot" style="background:${colorOf(slots, k)}" aria-hidden="true"></span>${esc(I.C[k].vi)}
       <button class="x" type="button" data-remove="${k}" aria-label="Bỏ ${esc(I.C[k].vi)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>`).join("")
     + (s.c.length > MAXCHIPS ? `<span class="chip more">+${s.c.length - MAXCHIPS} nước</span>` : "");
-  pbtn.insertAdjacentHTML("beforebegin", html);
-  pbtn.lastChild.textContent = s.c.length ? "Thêm / bớt nước" : "Chọn nước";
+  chips.innerHTML = html;
 
   // borrower: hide H/N when no selected economy publishes them
   const avail = { P: s.c.filter((k) => I.C[k].has.P).length, H: s.c.filter((k) => I.C[k].has.H).length, N: s.c.filter((k) => I.C[k].has.N).length };

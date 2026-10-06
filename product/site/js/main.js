@@ -212,14 +212,16 @@ function renderTop() {
   const q = charts.mapQuarter(c);
   const atQ = charts.mapValues(c, q).filter((x) => s.c.includes(x.c.iso2));
   $("#kpi-n").textContent = s.c.length;
-  $("#kpi-n-s").textContent = s.c.length ? `${s.c.filter((k) => I.C[k].has.P).length} có DSR · ${s.c.filter((k) => I.C[k].has.H).length} có tách H/N` : "Bấm “Chọn nước” để bắt đầu";
+  $("#kpi-n-s").textContent = s.c.length ? `${s.c.filter((k) => I.C[k].has.P).length} có DSR · ${s.c.filter((k) => I.C[k].has.H).length} có tách hộ gia đình / doanh nghiệp` : "Bấm “Chọn nước” để bắt đầu";
   const mg = median(atQ.map((x) => x.v));
-  $("#kpi-gap").textContent = Number.isFinite(mg) ? `${vn(mg, 1, true)} pp` : "—";
+  $("#kpi-gap").innerHTML = Number.isFinite(mg)
+    ? `<span class="delta ${mg >= 0 ? "up" : "down"}" aria-hidden="true">${mg >= 0 ? "▲" : "▼"}</span>${vn(mg, 1, true)}<small>pp</small>`
+      + `<span class="sr-only">${mg >= 0 ? "cao hơn" : "thấp hơn"} mức nền</span>` : "—";
   $("#kpi-gap-s").textContent = Number.isFinite(mg) ? `DSR ${s.b} so với mức nền 20 năm, ${qLabel(q)} · ${atQ.length} nước` : `không có DSR ${s.b} tại ${qLabel(q)}`;
   const rows = s.c.map((k) => I.lag[`${k}_${s.b}`]);
   const ok = rows.filter((r) => charts.lagStatus(r).key === "ok").map((r) => r.lag_q);
   const ml = median(ok);
-  $("#kpi-lag").textContent = Number.isFinite(ml) ? `${vn(ml, 1).replace(",0", "")} quý` : "—";
+  $("#kpi-lag").innerHTML = Number.isFinite(ml) ? `${vn(ml, 1).replace(",0", "")}<small>quý</small>` : "—";
   $("#kpi-lag-s").textContent = `±1 quý · ${ok.length} nước đo được · toàn cầu ${vn(dist.uncensored.median, 1).replace(",0", "")} quý`;
   const cens = rows.filter((r) => charts.lagStatus(r).key === "cens");
   $("#kpi-cens").textContent = cens.length;
