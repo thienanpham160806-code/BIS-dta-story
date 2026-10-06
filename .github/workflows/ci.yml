@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main, all-countries]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Unit tests
+        run: pytest -q
+
+      - name: Notebook runs end to end
+        run: jupyter nbconvert --to notebook --execute --output-dir /tmp --output executed notebooks/01_analysis.ipynb
+
+      - name: Site data rebuilds from data/raw and matches the committed file
+        run: |
+          python product/build_site.py
+          git diff --exit-code -- product/site/data.json product/site/data-series.json || {
+            echo "::error::product/site data is out of date: run python product/build_site.py and commit"; exit 1; }

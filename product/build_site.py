@@ -125,7 +125,6 @@ def main() -> None:
 
     payload = {
         "meta": {
-            "built": dt.date.today().isoformat(),
             "retrieved": summary["retrieved"],
             "summary": summary,
             "focus": FOCUS,

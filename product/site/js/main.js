@@ -98,7 +98,7 @@ function fillStatic() {
   const vals = {
     n_dsr: T.n_dsr, dsr_last: T.dsr_last,
     cycle_window: `${I.D.meta.cycle_window[0].slice(0, 4)}–${I.D.meta.cycle_window[1].slice(0, 4)}`,
-    built_line: `Dữ liệu tải ${I.D.meta.retrieved} · dựng ${I.D.meta.built}`,
+    built_line: `Dữ liệu tải ngày ${I.D.meta.retrieved}`,
   };
   $$("[data-k]").forEach((el) => { if (el.dataset.k in vals) el.textContent = vals[el.dataset.k]; });
 }

@@ -274,7 +274,7 @@
         "last": "{npl_last}"
       }
     ],
-    "updated": "Dữ liệu tải lần cuối ngày {retrieved}; trang được dựng ngày {built}. BIS cập nhật DSR và tín dụng theo quý, lãi suất chính sách theo tháng; World Bank cập nhật NPL theo năm và một số nước công bố chậm hơn (xem cột 'kỳ mới nhất' trong bảng độ phủ).",
+    "updated": "Dữ liệu tải lần cuối ngày {retrieved}. BIS cập nhật DSR và tín dụng theo quý, lãi suất chính sách theo tháng; World Bank cập nhật NPL theo năm và một số nước công bố chậm hơn (xem cột 'kỳ mới nhất' trong bảng độ phủ).",
     "howto": "Cập nhật: chạy `python scripts/fetch_data.py --refresh` rồi `python product/build_site.py`."
   },
   "regime_notes": {

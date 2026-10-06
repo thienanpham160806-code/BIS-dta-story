@@ -10,7 +10,7 @@ export function guideTokens(I) {
     n_dsr: S.with_dsr, n_hn: S.with_dsr_breakdown_HN, npl_n_min: Math.min(...npln), npl_n_max: Math.max(...npln),
     cross_n: I.D.cross.hike_vs_rise.n, large_hike: I.D.meta.large_hike_pp,
     dsr_last: q(S.latest.dsr), credit_last: q(S.latest.credit), policy_last: m(S.latest.policy), npl_last: S.latest.npl,
-    retrieved: I.D.meta.retrieved, built: I.D.meta.built,
+    retrieved: I.D.meta.retrieved,
   };
 }
 // fetch_summary.json labels: "2026-Q1" -> "Q1/2026", "2026-08" -> "08/2026"
