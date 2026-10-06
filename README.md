@@ -1,211 +1,199 @@
-# Chủ đề 1: Độ trễ chính sách thắt chặt tiền tệ & "gánh nặng âm thầm" lên Hộ gia đình & Doanh nghiệp
+# How long does a rate hike take to bite? Policy rates and private-sector debt service across BIS economies
 
-**Repo:** <https://github.com/thienanpham160806-code/BIS-dta-story>
-· **Hướng dẫn chạy local:** [`HUONG_DAN_CHAY_LOCAL.md`](HUONG_DAN_CHAY_LOCAL.md)
-· **Khai báo sử dụng AI (mục 26):** [`DECLARATION_AI.md`](DECLARATION_AI.md)
+When a central bank starts raising rates, the private sector does not feel it at once: existing loans reprice gradually. I measure that delay with BIS data. For every economy that tightened in 2021–2023, a fixed rule finds the month of lift-off, and I count the quarters until the private non-financial sector's debt service ratio (DSR) peaked. Across the 22 economies where that peak can be measured, the median delay is **8 quarters** (interquartile range 6–11). Four Asian economies anchor the story. Korea and Hong Kong SAR sit at the median, Thailand slightly below it, and Malaysia's DSR never rose above its pre-hike level. Hong Kong is still **7.6 percentage points** above its own 20-year average in 2026-Q1.
 
-## Tính thời sự
-Sau chu kỳ tăng lãi suất toàn cầu để chống lạm phát (2022–2023), chi phí vốn duy trì ở mức
-cao. Fed đã cắt lãi suất 6 lần liên tiếp (09/2024–12/2025, về 3.5–3.75%), nhưng đầu 2026 lạm
-phát bật tăng lại (CPI ~4.2%, cao nhất 3 năm, do xung đột Trung Đông + thuế quan), khiến Fed
-dừng cắt và đang cân nhắc TĂNG lại lãi suất — FOMC họp ngay 15–16/9/2026. Tại Đông Nam Á và
-Đông Á, thị trường bất động sản gặp khó khăn, áp lực đảo nợ tăng cao — câu hỏi là khu vực tư
-nhân đã kịp "hồi sức" sau đợt hiking đầu chưa, trước nguy cơ bị đánh úp vòng hai.
+**Live demo:** _not deployed yet_ — the site runs locally (see [How to run](#how-to-run)); a Vercel configuration is included.
 
-## Quốc gia so sánh
-**Hàn Quốc, Thái Lan, Malaysia, Hong Kong SAR** — các nền kinh tế Châu Á có tỷ lệ nợ hộ
-gia đình cao, đối chiếu bối cảnh với chu kỳ lãi suất Mỹ.
+![Dashboard, desktop, light theme](docs/screenshots/dashboard-desktop-light.png)
 
-> Đã đổi Singapore → Hong Kong SAR: Singapore không nằm trong 32 nước có DSR của BIS, và MAS
-> điều hành chính sách tiền tệ qua tỷ giá (S$NEER) chứ không đặt lãi suất chính sách theo
-> kiểu thông thường — không khớp với 2/3 bộ dữ liệu bắt buộc của chủ đề. Hong Kong SAR có đủ
-> DSR (PNFS) + tín dụng/GDP + lãi suất, và nợ hộ gia đình/GDP thuộc hàng cao nhất Châu Á.
+---
 
-**Giới hạn dữ liệu đã biết trước khi phân tích:** DSR breakdown Hộ gia đình/Doanh nghiệp
-riêng chỉ có đủ ở **Hàn Quốc** (1/17 nước trong nhóm có đủ dữ liệu). Thái Lan, Malaysia, Hong
-Kong chỉ có DSR **tổng khu vực tư nhân phi tài chính (PNFS)**. Đây là limitation cần khai báo
-trong sản phẩm cuối, không phải lỗi xử lý dữ liệu.
+## Contents
 
-## Bộ dữ liệu BIS dùng
-1. **Debt service ratios** (`BIS,WS_DSR,1.0`) — DSR gốc + lãi của Hộ gia đình/Doanh nghiệp
-2. **Credit to non-financial sector** (`BIS,WS_TC,2.0`) — tổng tín dụng tư nhân, % GDP
-3. **Policy rates** (`BIS,WS_CBPOL,1.0`) — lãi suất chính sách các NHTW
+- [Research question](#research-question)
+- [Data](#data)
+- [Methodology](#methodology)
+- [Key findings](#key-findings)
+- [How to use the dashboard](#how-to-use-the-dashboard)
+- [Limitations](#limitations)
+- [How to run](#how-to-run)
+- [Project structure](#project-structure)
+- [Author](#author)
+- [Use of AI tools](#use-of-ai-tools)
 
-## Kiểm tra chéo (Cross-check)
-**NPL ratio** (tỷ lệ nợ xấu) từ **World Bank** (`FB.AST.NPER.ZS`) — xác nhận DSR tăng có đi
-kèm nợ xấu gia tăng hay không.
+## Research question
 
-## Rủi ro & tín hiệu cảnh báo
-DSR tăng đột biến 12–18 tháng sau khi NHTW bắt đầu tăng lãi suất (độ trễ truyền dẫn chính sách).
+After the 2021–2023 tightening cycle, **how long did it take for higher policy rates to reach the private sector's debt service burden, and has that burden returned to normal?** I answer it in two layers:
 
-## Yếu tố bất ngờ cần kiểm chứng (không kết luận trước)
-Dư nợ tín dụng/GDP có xu hướng giảm nhẹ (do thắt chặt tín dụng), nhưng gánh nặng trả nợ thực
-tế (DSR) lại lập đỉnh lịch sử do lãi suất neo cao.
+1. **Global:** a lag distribution over every economy for which the BIS publishes a DSR.
+2. **Focus:** Korea, Thailand, Malaysia and Hong Kong SAR, the four economies the project started with, placed inside that distribution.
 
-## Cấu trúc thư mục
-```
-BIS-dta-story/
-├── data/raw/                        # CSV gốc tải trực tiếp từ API, KHÔNG sửa tay
-│   ├── dsr.csv                      # DSR 2016-Q1 → 2025-Q4 (cửa sổ phân tích)
-│   ├── dsr_longrun.csv              # DSR 1999-Q1 → 2025-Q4, CHỈ để tính mốc 20 năm
-│   ├── credit_gdp.csv               # Credit/GDP, có breakdown H/N/P cả 4 nước
-│   ├── policy_rate.csv              # Lãi suất chính sách, có thêm US làm mốc Fed
-│   └── npl_ratio_worldbank.csv      # NPL ratio (cross-check)
-├── data/processed/                  # Bảng wide sau làm sạch (notebook tự sinh)
-├── scripts/
-│   └── fetch_data.py                # Gọi BIS SDMX v2 + World Bank, lưu raw
-├── notebooks/
-│   └── 01_analysis.ipynb            # Toàn bộ phân tích + 8 biểu đồ + câu chuyện
-└── product/                         # Sản phẩm cuối — web chạy localhost
-    ├── serve.py                     # python product/serve.py -> localhost:8000
-    ├── build_site.py                # data/raw -> site/data.json (không gõ tay số nào)
-    └── site/                        # index.html · styles.css · app.js · vendor/plotly.min.js
-```
+The comparison is always against each economy's own history. The BIS stresses that DSR levels are not comparable across countries, because income definitions, loan maturities and lending structures differ.
 
-**Giai đoạn dữ liệu:** 01/01/2016 – 31/12/2025 cho mọi bộ. Ngoại lệ duy nhất là
-`dsr_longrun.csv`, tải toàn bộ lịch sử (từ 1999-Q1) và **chỉ dùng để tính mức trung bình
-20 năm 2006-Q1→2025-Q4** — mốc mà BIS khuyến nghị dùng khi so DSR, vì mức tuyệt đối
-không so được giữa các nước. File này không tham gia vào bất kỳ phép tính nào khác.
+## Data
 
-## Bảng mô tả dữ liệu (mục 16 của đề — đã kiểm tra metadata thật từ CSV, không suy đoán)
+All raw files are downloaded by [`scripts/fetch_data.py`](scripts/fetch_data.py) and never edited by hand. The figures below come from the run on 2026-10-06 ([`data/meta/fetch_summary.json`](data/meta/fetch_summary.json)).
 
-Nguồn metadata: cột label trong chính file `data/raw/*.csv` (tải với `labels=both`),
-đối chiếu codelist chính thức `stats.bis.org/api/v2/structure/codelist/BIS/...`.
+| Dataset | Source / code | Unit | Frequency | Coverage in this repo |
+|---|---|---|---|---|
+| Debt service ratio (DSR), borrowers H / N / P | BIS `WS_DSR 1.0` | % of income | Quarterly | 32 economies, 1999-Q1 (Türkiye 2002-Q1) → 2026-Q1. The household/corporate split exists for 17 of them. 0% missing since 2020 for every series. |
+| Credit to the non-financial sector, H / N / P | BIS `WS_TC 2.0` (all lenders, market value, adjusted for breaks) | % of GDP | Quarterly, end of period | 43 economies + euro area aggregate, from 1947-Q4 at the earliest → 2026-Q1. 0% missing since 2020. |
+| Central bank policy rate | BIS `WS_CBPOL 1.0` | % per year | Monthly, end of period | 51 economies + euro area. 47 run to 2026-08, three end in 2026-06/07, Argentina in 2025-06; Singapore has none. |
+| Bank NPL to gross loans | World Bank `FB.AST.NPER.ZS` | % of gross loans | Annual | 50 economies. Latest year is 2025 for 36 of them, 2024 for 10, and earlier for 4 (Korea and Russia 2023, Japan 2022, Singapore 2019). |
 
-| Bộ dữ liệu | Chỉ tiêu | Đối tượng (code → label thật) | Đơn vị | Tần suất | Ý nghĩa |
-|---|---|---|---|---|---|
-| `BIS,WS_DSR,1.0` | Debt service ratio (DSR) | `DSR_BORROWERS`: **H** = Households & NPISHs · **N** = Non-financial corporations · **P** = Private non-financial sector | `UNIT_MEASURE=367` → **Per cent** (`UNIT_MULT=0` → Units) | `FREQ=Q` → **Quý** | % thu nhập khả dụng phải dành để trả **gốc + lãi**. Đo gánh nặng dòng tiền thực tế, không phải quy mô nợ. |
-| `BIS,WS_TC,2.0` | Credit to non-financial sector | `TC_BORROWERS`: **H / N / P** (cùng codelist `CL_TC_BORROWERS`) · `TC_LENDERS=A` → All sectors · `VALUATION=M` → Market value · `TC_ADJUST=A` → Adjusted for breaks | `UNIT_TYPE=770` → **Percentage of GDP** ✅ | `FREQ=Q` → **Quý** (`COLLECTION=E` → End of period) | Dư nợ tồn đọng so với GDP. Đo **quy mô đòn bẩy**, không đo chi phí phục vụ nợ. |
-| `BIS,WS_CBPOL,1.0` | Central bank policy rate | `REF_AREA`: KR (Bank of Korea base rate) · TH (BoT 1-day repo) · MY (BNM overnight policy rate) · HK (HKMA official base rate) · **US (Fed target mid-point — mốc tham chiếu)** | `UNIT_MEASURE=368` → **Per cent per year** | `FREQ=M` → **Tháng** (End of period) | Biến chính sách — đầu vào gây ra độ trễ truyền dẫn. |
-| WB `FB.AST.NPER.ZS` | Bank NPL to total gross loans | 4 nước, mức toàn hệ thống ngân hàng (không tách HGD/DN) | **% tổng dư nợ gộp** | **Năm** | Kiểm chứng: gánh nặng trả nợ tăng có biến thành vỡ nợ thật không. |
+In total the script downloads **52 economies plus the euro area aggregate**: every economy that appears in at least one of the three BIS datasets. BIS's own regional and income aggregates are not treated as economies.
 
-**Xác nhận coverage (2016-Q1 → 2025-Q4, chạy `fetch_data.py`):**
+**Metadata files built by the same script**
 
-| Bộ | KR | TH | MY | HK | US |
-|---|---|---|---|---|---|
-| DSR | H, N, P — 40/40 quý, **0% thiếu** | chỉ **P** — 40/40 | chỉ **P** — 40/40 | chỉ **P** — 40/40 | — |
-| Credit/GDP | H, N, P — 40/40 | H, N, P — 40/40 | H, N, P — 40/40 | H, N, P — 40/40 | — |
-| Policy rate | 120/120 tháng | 120/120 | 120/120 | 120/120 | 120/120 |
-| NPL (năm) | 8/10 — **thiếu 2024, 2025** | 9/10 — **thiếu 2025** | 10/10 | 10/10 | — |
+- [`data/meta/countries.csv`](data/meta/countries.csv) has one row per economy. It gives the ISO2 code, English and Vietnamese names, World Bank region, and the advanced/emerging group. The group follows the BIS *Convention for country groupings* (January 2026), parsed from the BIS PDF. It also records whether DSR H/N/P exist, the first and last period of each dataset, and the policy-rate code used.
+- [`data/meta/coverage.csv`](data/meta/coverage.csv) gives the percentage of missing observations by economy × series × period (1999–2009, 2010–2019, 2020–latest, 1999–latest).
+- [`data/meta/euro_area_members.csv`](data/meta/euro_area_members.csv) lists euro area members and their year of adoption, parsed from the ECB's euro area page.
 
-> **Limitation đã xác nhận bằng dữ liệu thật (không phải lỗi xử lý):** DSR breakdown
-> Hộ gia đình / Doanh nghiệp chỉ tồn tại ở **Hàn Quốc**. TH/MY/HK chỉ có DSR tổng PNFS.
-> Bù lại, **credit/GDP có breakdown H/N đầy đủ ở cả 4 nước** → dùng làm proxy cho câu hỏi
-> "ai vay", nhưng phải nhớ đó là **dư nợ**, không phải **gánh nặng trả nợ**.
+**Policy-rate mapping.** The 13 euro area members in the data use the ECB rate (BIS `XM`) from January of their euro adoption year, and their national rate before that, where the BIS has one. Hong Kong keeps the HKMA base rate but is flagged as a USD peg. Denmark is flagged as a fixed exchange rate against the euro. Singapore runs monetary policy through the exchange rate and has no policy-rate series, so it is left empty rather than given a proxy.
 
-> **Khoảng trống NPL:** Hàn Quốc 2024–2025 và Thái Lan 2025 chưa có số trong World Bank.
-> **Không nội suy, không điền giá trị giả** — để trống và khai báo trên biểu đồ.
+**Missing data are never filled.** No interpolation or carried-forward values, and no proxy series. A missing observation stays missing in every table and chart, and the dashboard says so next to the chart.
 
-## Ghi chú kỹ thuật: endpoint BIS đã đổi (11/09/2026)
-URL cũ dạng `https://data.bis.org/topics/{TOPIC}/...` trả về **HTTP 404 `{"detail":"Not Found"}`**
-cho cả 3 bộ — đó là host của **giao diện web**, không phải API. Endpoint máy đọc được là
-**BIS SDMX RESTful API v2**:
+## Methodology
 
-```
-https://stats.bis.org/api/v2/data/dataflow/BIS/{FLOW_ID}/{VERSION}/{KEY}?format=csv&labels=both
-```
+All calculations live in one module, [`analysis/core.py`](analysis/core.py). The notebook and the site builder both call `core.run_all()`, so they cannot disagree.
 
-Version dataflow đã kiểm tra lại trực tiếp và **không đổi**: `WS_DSR 1.0`, `WS_TC 2.0`,
-`WS_CBPOL 1.0` — chỉ sai host. Tham số `include=code,label` (kiểu v1) không tồn tại ở v2,
-thay bằng `labels=both`. Chi tiết ghi trong docstring của `scripts/fetch_data.py`.
+**20-year benchmark.** For each DSR series, the benchmark is the mean of its last 80 quarterly observations: 2006-Q2 → 2026-Q1 for every series in this vintage, with all 80 quarters present. The *gap* is DSR minus that benchmark, in percentage points (pp). All cross-country comparisons use the gap or changes in it.
 
-## 3 mốc thời gian làm trục câu chuyện
-- 🔺 03/2022 — Fed bắt đầu hiking
-- 🔻 09/2024 → 12/2025 — Fed cắt 6 lần liên tiếp (giai đoạn "thở")
-- ❓ 09/2026 (tuần này) — nguy cơ re-hike
+**Lift-off date (algorithm).** On the monthly policy rate (mapped as above), inside the window January 2021 – December 2023:
 
-## Vì sao có độ trễ — và vì sao độ trễ không cố định
+1. *trough* = the earliest month at which the rate reaches its minimum within the window;
+2. *lift-off* = the first later month, still inside the window, with a rate above that minimum;
+3. *cycle peak* = the highest rate from lift-off to December 2024; *hike size* = peak − trough.
 
-Khái niệm độ trễ truyền dẫn từ chính sách tiền tệ sang gánh nặng trả nợ không phải là một hằng số cố định, mà chịu sự chi phối của bốn cơ chế tài chính nền tảng:
+If step 2 finds nothing, the economy is marked **"no hiking cycle"** and excluded from the lag analysis. This applies to China and Japan, and to Singapore, which has no series. I add one extra rule. A jump in the month an economy adopts the euro is the switch from a national rate to the ECB rate, not a policy decision, so it is not counted as a lift-off. This applies to Croatia in January 2023.
 
-1. **Quán tính tái định giá của các hợp đồng tín dụng hiện hữu**: Lãi suất điều hành của ngân hàng trung ương không lập tức thay đổi chi phí của toàn bộ nền kinh tế. Các khoản vay với lãi suất cố định chỉ chịu tác động khi đến hạn thanh toán và tái cấp vốn; ngay cả các khoản vay theo lãi suất thả nổi cũng thường có chu kỳ điều chỉnh định kỳ (3, 6 hoặc 12 tháng) căn cứ theo lãi suất cơ sở, tạo ra độ trễ tự nhiên trước khi chi phí lãi vay tăng lên trên thực tế.
-2. **Quy mô nợ tồn đọng chi phối chỉ số DSR**: Chỉ số DSR phản ánh nghĩa vụ chi trả trên toàn bộ khối nợ tích tụ trong nền kinh tế (debt stock) thay vì các khoản tín dụng mới phát sinh (new flows). Do đó, các khoản vay mới chịu lãi suất cao cần một khoảng thời gian đủ dài để thẩm thấu và chiếm tỷ trọng đáng kể trong tổng dư nợ thì mới có thể đẩy tỷ lệ DSR bình quân của toàn bộ khu vực tư nhân tăng lên rõ rệt.
-3. **Giả định cấu trúc kỳ hạn trong phương pháp luận của BIS**: Công thức tính DSR của BIS chuẩn hóa kỳ hạn còn lại cố định bình quân (18 năm đối với khu vực hộ gia đình và 13 năm đối với doanh nghiệp phi tài chính). Một cú sốc lãi suất cần có thời gian luân chuyển qua toàn bộ cấu trúc kỳ hạn này để phản ánh trọn vẹn vào gánh nặng dòng tiền trả nợ mô phỏng.
-4. **Độ trễ bổ sung giữa căng thẳng dòng tiền và rủi ro nợ xấu (NPL)**: NPL có độ trễ lớn hơn DSR thêm một tầng nữa. Khi DSR tăng cao, áp lực dòng tiền lập tức đè nặng lên người vay, nhưng hiện tượng vỡ nợ chỉ phát sinh sau khi hộ gia đình và doanh nghiệp đã cạn kiệt các biện pháp ứng phó (cắt giảm chi tiêu tiêu dùng, sử dụng quỹ tiết kiệm dự phòng hoặc đàm phán tái cơ cấu thời hạn trả nợ). Cơ chế này giải thích nguyên nhân tỷ lệ nợ xấu ghi nhận độ lệch pha rõ rệt và không tăng đồng thời với DSR tại 3/4 nền kinh tế quan sát.
+**Lag.** The lift-off quarter is the quarter that contains the lift-off month. The DSR peak is the first quarter with the highest DSR from the lift-off quarter onwards, and the lag is the number of quarters between the two. Because lift-off is monthly and DSR is quarterly, **lags are accurate to ±1 quarter**, so I report them in whole quarters and not in months. Two flags:
 
-Chính bốn cơ chế vận động trên là lý do độ trễ truyền dẫn thực tế đo lường được trong nghiên cứu (trung vị 24.5 tháng) kéo dài hơn so với giả thuyết 12–18 tháng ban đầu của đề cương, hoàn toàn xuất phát từ bản chất vận hành của thị trường tín dụng chứ không phải sai lệch về dữ liệu hay phương pháp tính toán.
+- **Censored**: the peak falls on the last observation in the sample, so the true peak may still lie ahead and the lag is only a lower bound. Censored series are drawn as hollow markers and left out of the headline median. As a check I also report the median with censored lags treated as lower bounds, and a Kaplan–Meier median.
+- **No rise**: the DSR never exceeds its pre-lift-off level, or peaks in the lift-off quarter itself and only falls afterwards. There is no transmission peak to time, so these series are excluded from the distribution and listed.
 
-## Kết quả chính (tóm tắt — chi tiết trong notebook)
+The headline result uses the private non-financial sector series (**P**), which exists for all 32 economies. Households (**H**) and corporations (**N**) are a split analysis for the 17 economies that publish them.
 
-**Trả lời câu hỏi lớn: CHƯA, và mức độ chênh nhau rất lớn giữa bốn nước.**
+**Correlations.** Every coefficient is reported with its **n** and a **95% confidence interval** (Fisher z). For NPL against DSR, I take the DSR's Q4 value as the year-end observation and do not interpolate NPL to quarters. I report correlations of levels and of annual changes. All of them are **descriptive only**.
 
-| | Còn vượt mốc 20 năm | Đã gỡ được | Lãi suất hiện tại |
-|---|---|---|---|
-| 🔴 Hong Kong | **+7.1pp** | 35% | 4.00% (neo theo Fed) |
-| 🟠 Hàn Quốc — Doanh nghiệp | +1.5pp | 75% | 2.50% |
-| 🟡 Hàn Quốc — Hộ gia đình | +0.2pp | 84% | 2.50% |
-| 🟢 Malaysia | +0.2pp | (chưa từng vượt đáng kể) | 2.75% |
-| 🟢 Thái Lan | **−0.4pp** | 100%+ | 1.25% |
+**Cross-country comparison.** For economies with a measured lag, I relate the hike size (pp) to the DSR rise (pp) and to the lag. The DSR rise is a change within each economy's own series, so it is comparable across economies. I report Pearson with a CI, Spearman, and a robustness check that drops cycles larger than 10 pp.
 
-**Ba chỗ dữ liệu KHÔNG ủng hộ giả thuyết ban đầu của đề cương** (đều là finding, không phải lỗi):
+## Key findings
 
-1. **Độ trễ dài hơn giả thuyết.** Giả thuyết 12–18 tháng chỉ đúng 1/6 chuỗi (hộ gia đình
-   Hàn Quốc, 16 tháng). Trung vị quan sát được là **24.5 tháng**. Điều này làm rủi ro re-hike
-   *nặng hơn*, không nhẹ đi: gánh nặng sẽ đổ xuống tận 2028.
-2. **"Điều bất ngờ" chỉ đúng 2/4 nước.** Hong Kong (dư nợ −10.4pp / DSR +5.9pp) và Thái Lan
-   khớp. Hàn Quốc thì **cả hai cùng tăng** — gánh nặng do vay thêm giữa lúc lãi suất lên,
-   một cơ chế khác hẳn. Malaysia cả hai cùng giảm.
-3. **Cross-check NPL bác bỏ liên hệ ở 3/4 nước.** Chỉ Hong Kong có nợ xấu tăng thật
-   (0.88 → 1.56, +77%). Hàn Quốc gần như đứng yên, Thái Lan và Malaysia **giảm** — tương quan
-   mức thậm chí âm (−0.58 và −0.46).
+All numbers below come from the current run (`notebooks/01_analysis.ipynb`, `product/site/data.json`).
 
-**Phát hiện ngoài đề cương:** chính sách tiền tệ độc lập là tấm khiên đo được bằng số.
-Malaysia chỉ phải tăng 1.25pp và kết thúc chu kỳ với DSR gần như không đổi; Hong Kong
-neo tỷ giá nên buộc phải tăng đúng +5.25pp như Fed và lĩnh trọn thiệt hại.
+**1. The typical lag is two years, not 12–18 months.**
 
-## Sản phẩm cuối — web dashboard chạy localhost
+| Borrowers | Measured lags (n) | Median | IQR | Range | Censored | No rise | No cycle |
+|---|---|---|---|---|---|---|---|
+| **Private non-financial sector (P)** | **22** | **8 quarters** | **6–11** | 1–17 | 2 (Brazil ≥ 20, India ≥ 15) | 6 (DE, ES, FR, GB, MY, NL) | 2 (CN, JP) |
+| Households (H) | 10 | 5.5 | 5–7.75 | 3–13 | 1 | 5 | 1 |
+| Non-financial corporations (N) | 6 | 9.5 | 7.25–11.75 | 2–12 | 1 | 9 | 1 |
+
+Treating the two censored P series as lower bounds leaves the median at 8 quarters; the Kaplan–Meier median is also 8. My original hypothesis of a 12–18-month lag (4–6 quarters) sits at the short end of what the data show.
+
+**2. The four focus economies are typical in timing and differ in size.**
+
+| Economy | Lift-off | Hike (pp) | DSR peak | Lag | DSR rise (pp) | Gap vs 20-year mean, 2026-Q1 |
+|---|---|---|---|---|---|---|
+| Hong Kong SAR | 03/2022 (same month and size as the Fed) | +5.25 | 2024-Q1 | 8 quarters | +5.9 | **+7.6 pp** |
+| Korea | 08/2021 | +3.00 | 2023-Q3 | 8 quarters | +2.8 | +0.7 pp |
+| Thailand | 08/2022 | +2.00 | 2024-Q1 | 6 quarters | +0.8 | −0.5 pp |
+| Malaysia | 05/2022 | +1.25 | — | no rise | — | +0.2 pp |
+
+Korea also publishes the household/corporate split. Corporations peaked after 8 quarters with a rise of +7.8 pp. Households peaked after 12 quarters (2024-Q3) with a much smaller rise of +0.6 pp.
+
+**3. Recovery is uneven.** In 2026-Q1, 17 of the 32 economies still have a DSR above their own 20-year mean. The largest gaps are in Türkiye (+10.9 pp), Brazil (+10.6), Russia (+7.8) and Hong Kong (+7.6). Hong Kong has unwound only 29% of its peak excess (from +10.7 to +7.6 pp). Korea has unwound 77%, and Thailand is now below its benchmark.
+
+**4. Bigger hikes go with bigger DSR rises, but only because of a few extreme cycles.** Across the 24 economies with a measured rise, Pearson r = 0.91 (95% CI 0.79 to 0.96), while the Spearman rank correlation is only 0.47. Dropping the four cycles above 10 pp (Brazil, Hungary, Russia, Türkiye) leaves **r = 0.09 (95% CI −0.37 to 0.51, n = 20)**. Hike size tells us essentially nothing about the *lag*: r = −0.03 (95% CI −0.44 to 0.40, n = 22). These are descriptive correlations, not causal estimates.
+
+**5. NPLs do not track the DSR.** Of the 32 DSR economies, 30 have a confidence interval for the correlation of annual changes that includes zero. Norway's is the exception (r = 0.59, 95% CI 0.14 to 0.84, n = 16), and Germany has too few NPL years for an interval (n = 3). For the focus economies, for example, Hong Kong r = −0.27 (95% CI −0.66 to 0.25, n = 17) and Korea r = −0.08 (95% CI −0.58 to 0.47, n = 14). With 3–20 annual observations per economy, the data cannot show a link either way.
+
+## How to use the dashboard
+
+The site has three pages: **Bảng điều khiển** (dashboard), **Câu chuyện dữ liệu** (the data story on the four focus economies, with a section placing them in the global distribution), and **Hướng dẫn** (guide). The interface is in Vietnamese.
+
+![Choosing an economy, changing the years, switching to the deviation view and copying the link](docs/screenshots/how-to-use.gif)
+
+1. **Choose economies.** *Chọn nước* opens a searchable list grouped by region, which accepts Vietnamese or English names. It has quick selections for the 4 original economies, Asia, the euro area, advanced and emerging economies. Each economy keeps one colour on every chart. The four original economies have fixed colours, and the others take the first free colour in the order they appear in the link. With more than six economies, line charts switch to small multiples.
+2. **Choose the borrower group.** P, H or N. H and N are hidden when none of the selected economies publishes them.
+3. **Choose the years.** The two-handle slider also works with the arrow keys. Its end year sets the quarter coloured on the world map and used by the KPI cards.
+4. **Level or deviation.** The default view is the deviation from each economy's own 20-year mean. The level view carries a warning that levels are not comparable across countries.
+5. **Share.** Every filter is stored in the address (for example `?c=KR,TH,MY,HK&from=2016&to=2026&b=P`). *Sao chép link* copies it.
+
+Every chart title states the finding, computed from the data. The source and unit sit under each chart, and **ⓘ Cách đọc** opens a short card with three parts: what the chart shows, how to read it, and what not to conclude from it. On first visit a five-step tour points at the controls, and the **?** button reopens it. Missing data appear as gaps with a note naming the economies. The light and dark themes share one chart template.
+
+| Mobile (375 px), dark | Filters as a drawer on mobile | Story page |
+|---|---|---|
+| ![Dashboard on mobile, dark theme](docs/screenshots/dashboard-mobile-dark.png) | ![Filter drawer on mobile](docs/screenshots/filters-drawer-mobile-light.png) | ![Story page](docs/screenshots/story-desktop-light.png) |
+
+Measured with Lighthouse 12.8 against the local server, with default mobile throttling unless noted:
+
+| Page | Performance (mobile) | Performance (desktop) | Accessibility | Best practices |
+|---|---|---|---|---|
+| Dashboard | 92 | 97 | 100 | 100 |
+| Story | 86 | – | 100 | – |
+| Guide | 98 | – | 100 | – |
+
+## Limitations
+
+- **One peak per economy.** The lag is measured as the distance to a single peak on a quarterly ratio (±1 quarter). Another shock in the same window, such as pandemic-era income swings or fiscal support, can move that peak.
+- **Censoring.** Brazil's and India's DSRs are still at their sample high, so their lags are lower bounds. Only two series are affected, but the headline median would rise if their peaks turn out to be much later.
+- **DSR construction.** The BIS computes the DSR under fixed assumptions about remaining maturity and amortisation. Levels are not comparable across economies, which is why the analysis uses gaps and changes.
+- **Coverage of the split.** Only 17 of the 32 economies have the household/corporate DSR. Thailand, Malaysia and Hong Kong have the aggregate only.
+- **Exchange-rate regimes.** Hong Kong (USD peg) and Denmark (euro peg) have policy rates that mostly mirror another central bank. Singapore has no policy rate in the data.
+- **NPL.** NPLs are annual, cover the whole banking system and are published with delays, so every NPL–DSR correlation is descriptive.
+- **No forecasts.** Every chart and number stops at the latest observation (DSR and credit 2026-Q1, policy rates 2026-08, NPL 2025).
+
+## How to run
+
+Requires Python ≥ 3.10.
 
 ```bash
-python product/serve.py        # mở http://localhost:8000
+pip install -r requirements.txt
+
+python scripts/fetch_data.py            # download raw data (uses data/cache; add --refresh to re-download)
+jupyter nbconvert --to notebook --execute --inplace notebooks/01_analysis.ipynb
+python product/build_site.py            # data/raw -> product/site/data.json + data-series.json
+python product/serve.py                 # http://localhost:8000 (rebuilds automatically if data changed)
+pytest -q                               # unit tests for the analysis module
 ```
 
-Một trang web hai phần, chạy offline hoàn toàn (plotly.js nhúng sẵn):
+The site is static and works offline. Plotly (the official `geo` partial bundle of the same version as the Python package), the world map and the fonts are vendored. `python product/vendor_assets.py` re-downloads them. Do not open `product/site/index.html` directly from disk: browsers block `fetch()` on `file://`.
 
-- **Bảng điều khiển** — lọc quốc gia / khoảng thời gian / nhóm người vay, 4 thẻ KPI,
-  8 biểu đồ tương tác, bảng dữ liệu thô tải được CSV, bảng độ phủ dữ liệu, chế độ sáng–tối.
-- **Câu chuyện dữ liệu** — bài đọc 9 phần theo cấu trúc mục 24 của đề, mỗi phần kèm biểu đồ.
+**Deployment.** [`vercel.json`](vercel.json) serves `product/site` as a static site with no build step. The data are built locally and committed, so the deployed numbers are exactly the ones in this repository.
 
-**Không có con số nào gõ tay trong trang web.** `product/build_site.py` đọc `data/raw/`,
-tính lại toàn bộ chỉ tiêu bằng đúng logic của notebook rồi sinh `site/data.json`; các số
-trong phần Câu chuyện được chèn lúc chạy từ chính file đó. `serve.py` tự build lại nếu
-`data/raw/` mới hơn, nên trang không bao giờ lệch với dữ liệu gốc.
+**Continuous integration.** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the unit tests and executes the notebook end to end. It also rebuilds the site data from `data/raw` and fails if the result differs from the committed files.
 
-Chi tiết cách chạy và ghi chú thiết kế: [`product/README.md`](product/README.md).
+## Project structure
 
-### Vì sao chọn dạng này
+```
+BIS-dta-story/
+├── scripts/fetch_data.py        # BIS SDMX v2 + World Bank + ECB/BIS reference lists -> data/raw, data/meta
+├── data/
+│   ├── raw/                     # files exactly as downloaded (two large BIS files gzip-compressed)
+│   ├── meta/                    # countries.csv, coverage.csv, euro_area_members.csv, ...
+│   └── processed/               # tables written by the notebook
+├── analysis/core.py             # every calculation: benchmark, lift-off, lag, censoring, CIs
+├── notebooks/01_analysis.ipynb  # analysis and data story (Vietnamese), calls analysis.core
+├── tests/test_core.py           # synthetic series with known answers + invariants on real data
+├── product/
+│   ├── build_site.py            # analysis.core -> site/data.json, site/data-series.json
+│   ├── serve.py                 # local server (127.0.0.1), gzip, auto-rebuild
+│   ├── vendor_assets.py         # downloads plotly bundle, world map, fonts
+│   ├── DESIGN.md                # design system (direction A, editorial)
+│   └── site/                    # index.html, styles.css, tokens.css, guide.json, js/, vendor/, fonts/
+├── docs/screenshots/            # screenshots and the usage GIF
+├── vercel.json                  # static deploy configuration
+├── DECLARATION_AI.md            # declaration of AI use (Vietnamese)
+└── INTERVIEW_NOTES.md           # notes for presenting the project (Vietnamese)
+```
 
-Câu chuyện có một mạch dẫn tuyến tính bắt buộc — phải hiểu "dư nợ ≠ gánh nặng trả nợ"
-trước, mới thấy được nghịch lý Hong Kong — nên phần **Câu chuyện** cố định cả 4 nước và
-kể theo đúng thứ tự đó, đồng thời nêu limitation (chỉ Hàn Quốc có breakdown) ngay tại chỗ
-người đọc cần biết. Phần **Bảng điều khiển** đứng riêng cho ai muốn tự kiểm chứng số,
-chứ không thay thế mạch kể. Đây là lý do chọn "bài báo dữ liệu + dashboard" thay vì
-dashboard thuần: dashboard thuần rất dễ khiến người đọc so mức DSR tuyệt đối giữa các nước —
-đúng cái sai phương pháp mà BIS cảnh báo.
+## Author
 
-## Hồ sơ nộp
+**Pham Ngoc Thien An** (Phạm Ngọc Thiên An)
+Student ID K244141653 · Faculty of Finance and Banking, University of Economics and Law, VNU-HCM
 
-| Hạng mục | Tệp | Mục của đề |
-|---|---|---|
-| Mã tải dữ liệu | [`scripts/fetch_data.py`](scripts/fetch_data.py) | — |
-| Dữ liệu gốc (không sửa tay) | [`data/raw/`](data/raw/) | — |
-| Phân tích + câu chuyện 9 bước | [`notebooks/01_analysis.ipynb`](notebooks/01_analysis.ipynb) | 24 |
-| Bảng mô tả dữ liệu | README, mục bên trên | 16 |
-| Sản phẩm cuối (web localhost) | [`product/`](product/) — `python product/serve.py` | — |
-| **Khai báo sử dụng AI** | [**`DECLARATION_AI.md`**](DECLARATION_AI.md) | **26** |
-| Checklist | README, mục bên dưới | 33 |
+## Use of AI tools
 
-## Checklist trước khi nộp (rút từ đề, mục 33)
-- [x] Đã chạy `fetch_data.py` thành công, có raw CSV cho cả 4 bộ (DSR, credit, policy, NPL)
-      — URL BIS cũ trả 404, đã dò lại và chuyển sang SDMX API v2 (xem ghi chú kỹ thuật trên)
-- [x] Đã đọc metadata (đơn vị, tần suất, người vay) — ghi vào bảng trên
-- [x] Đã confirm DSR_BORROWERS code thật (H/N/P) từ cột label trong CSV + codelist BIS
-- [x] Đã báo cáo % dữ liệu thiếu từng bộ từng nước, không fill bất kỳ giá trị nào
-- [x] Đã kiểm tra chéo NPL vs DSR — kết quả **không khớp ở 3/4 nước**, đã ghi rõ là finding
-- [x] Tín hiệu cảnh báo là gì? → độ trễ thật ~24.5 tháng, dài hơn giả thuyết 12–18 tháng
-- [x] Điều bất ngờ là gì? → nghịch lý nợ giảm/gánh nặng tăng chỉ đúng 2/4 nước; và tấm khiên
-      chính sách tiền tệ độc lập của Malaysia
-- [x] Notebook chạy lại được từ đầu đến cuối (đã verify bằng `nbconvert --execute`, 0 lỗi)
-- [x] Dựng sản phẩm cuối trong `product/` — web dashboard + bài báo dữ liệu,
-      chạy bằng `python product/serve.py`, đã kiểm thử headless (0 lỗi JS)
-- [x] Khai báo sử dụng AI (mục 26) — [`DECLARATION_AI.md`](DECLARATION_AI.md)
-- [ ] **Điền họ tên + MSSV vào `DECLARATION_AI.md`** (đang để trống chỗ ký)
+I used an AI coding assistant for parts of the code, the calculations and the drafting. What it did, what I decided, and how I checked the results are declared in [DECLARATION_AI.md](DECLARATION_AI.md).

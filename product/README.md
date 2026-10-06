@@ -1,72 +1,56 @@
-# Sản phẩm cuối — web dashboard chạy localhost
+# Sản phẩm cuối — web dashboard
 
-Bài báo dữ liệu + bảng điều khiển tương tác, chạy trên máy, **không cần internet**
-(plotly.js được nhúng sẵn từ package `plotly` đã cài).
+Dashboard + câu chuyện dữ liệu + trang hướng dẫn, giao diện tiếng Việt, chạy **không cần internet**
+(Plotly, bản đồ thế giới và font được nhúng sẵn).
 
 ## Chạy
 
 ```bash
-python product/serve.py
+python product/serve.py            # http://localhost:8000 (tự mở trình duyệt)
+python product/serve.py 8080       # đổi cổng
+python product/serve.py --no-open  # không mở trình duyệt
 ```
 
-Trình duyệt tự mở ở <http://localhost:8000>. Dừng bằng `Ctrl+C`.
-Muốn đổi cổng: `python product/serve.py 8080`.
-
-> `serve.py` tự chạy `build_site.py` nếu `data.json` chưa có **hoặc** `data/raw/` mới hơn —
-> nên trang không bao giờ hiển thị số cũ so với dữ liệu gốc.
-
-**Đừng mở `site/index.html` bằng `file://`** — trình duyệt chặn `fetch("data.json")` theo
-chính sách CORS. Phải qua `serve.py`.
-
-## Hai phần
-
-**① Bảng điều khiển** — lọc và khám phá:
-- Bật/tắt từng quốc gia (màu mỗi nước cố định ở mọi biểu đồ)
-- Đổi khoảng thời gian: toàn bộ 2016–2025 · chu kỳ 2021–2025 · từ 2023
-- Đổi nhóm người vay cho dư nợ/GDP: tổng PNFS · hộ gia đình · doanh nghiệp
-- Bật/tắt tô 3 giai đoạn chính sách; tách HGĐ/DN cho Hàn Quốc
-- 4 thẻ KPI + 8 biểu đồ + bảng dữ liệu thô (tải CSV) + bảng độ phủ dữ liệu
-- Nút ◐ đổi giao diện sáng/tối
-
-**② Câu chuyện dữ liệu** — bài đọc 9 phần theo cấu trúc đề bài, mỗi phần có biểu đồ
-riêng. Phần này **cố định hiển thị cả 4 nước**: nó là một mạch kể, không phải công cụ lọc.
+`serve.py` tự chạy `build_site.py` khi `data.json` chưa có hoặc cũ hơn `data/raw/`, `data/meta/` hay
+`analysis/`. Không mở `site/index.html` trực tiếp bằng `file://` — trình duyệt chặn `fetch()`.
 
 ## Số liệu lấy từ đâu
 
-**Không có con số nào gõ tay trong trang web.** `build_site.py` đọc `data/raw/`, tính lại
-toàn bộ chỉ tiêu bằng đúng logic của `notebooks/01_analysis.ipynb` (mốc 20 năm, độ trễ,
-tương quan theo lag, kiểm định "điều bất ngờ", cross-check NPL, bảng điểm hồi phục) rồi
-ghi ra `site/data.json`. Các con số trong phần Câu chuyện được chèn vào lúc chạy từ chính
-file đó — sửa dữ liệu gốc, chạy lại, chữ và số tự khớp.
+Không có con số nào gõ tay. `build_site.py` gọi `analysis.core.run_all()` — đúng hàm notebook dùng — rồi ghi:
+
+- `site/data.json` (~138 KB): bảng kết quả + chuỗi độ lệch DSR, đủ cho màn hình đầu.
+- `site/data-series.json` (~303 KB): chuỗi mức DSR, tín dụng/GDP, lãi suất, NPL — tải sau khi trang đã hiện.
+
+Tiêu đề biểu đồ, thẻ KPI và mọi câu trong phần Câu chuyện được tính từ hai file này lúc chạy.
 
 ## Cấu trúc
 
 ```
 product/
-├── serve.py              # server localhost (chỉ bind 127.0.0.1) + tự build khi cần
-├── build_site.py         # data/raw/ -> site/data.json + nhúng plotly.js
+├── serve.py            # server 127.0.0.1, gzip, tự build khi dữ liệu đổi
+├── build_site.py       # analysis.core -> site/data.json + site/data-series.json
+├── vendor_assets.py    # tải plotly (bản geo), world_110m.json, font (đã subset)
+├── DESIGN.md           # design system, hướng A "Biên tập"
+├── design/screens/     # ảnh chụp 2 hướng thiết kế lúc đề xuất
 └── site/
-    ├── index.html        # khung trang + toàn bộ nội dung câu chuyện
-    ├── styles.css        # design tokens, có chế độ sáng/tối
-    ├── app.js            # state, bộ lọc, 11 biểu đồ, bảng, xuất CSV
-    ├── data.json         # (sinh tự động — không sửa tay)
-    └── vendor/
-        └── plotly.min.js # (sinh tự động, lấy từ package plotly đã cài)
+    ├── index.html      # khung trang
+    ├── tokens.css      # design tokens (màu, chữ, khoảng cách, sáng/tối)
+    ├── styles.css      # bố cục và thành phần
+    ├── guide.json      # nội dung hướng dẫn, tour, thuật ngữ, FAQ (sửa/dịch ở đây)
+    ├── js/             # main, state (URL, màu), charts, ui, story, guide, tour, util
+    ├── vendor/         # plotly-geo.min.js, world_110m.json
+    └── fonts/          # IBM Plex Sans, Newsreader (SIL OFL)
 ```
 
-## Ghi chú thiết kế
+## Quy ước thiết kế
 
-- **Không dùng biểu đồ hai trục y.** Chỗ cần so DSR với NPL (hai đơn vị khác nhau),
-  cả hai chuỗi được quy về chỉ số 2016 = 100 để dùng chung một trục.
-- **Mỗi nước một màu cố định**, không đổi khi lọc bớt nước — màu bám theo quốc gia,
-  không bám theo thứ hạng.
-- **Mọi đường đều có nhãn trực tiếp** ở đầu phải, tự đẩy nhau ra khi hai đường kết thúc
-  quá gần. Bảng màu đã kiểm định độ phân biệt cho người mù màu.
-- **Khoảng trống dữ liệu được vẽ là khoảng trống** — NPL Hàn Quốc 2024–2025 và Thái Lan 2025
-  để hở, có cảnh báo đỏ ngay dưới biểu đồ. Không nội suy.
-- **Vùng 2026** trên mọi biểu đồ là vùng rỗng có viền đứt, ghi rõ "chưa có dữ liệu".
+Xem [`DESIGN.md`](DESIGN.md). Tóm tắt: mặc định hiển thị **độ lệch so với trung bình 20 năm** của chính nước đó;
+tiêu đề biểu đồ nói kết luận; mỗi đường có nhãn trực tiếp; 4 nước gốc giữ màu cố định, nước khác nhận màu theo
+thứ tự trong link; quá 6 nước thì chuyển sang lưới biểu đồ nhỏ; thiếu dữ liệu là khoảng trống có ghi chú.
 
-## Kiểm thử
+## Kiểm thử đã chạy
 
-Đã chạy kiểm thử headless (Playwright + Chromium): không lỗi JS, không cảnh báo console,
-11/11 biểu đồ render, bộ lọc và tab hoạt động, sáng/tối đúng, không tràn ngang ở bề rộng 400px.
+Playwright (Chromium headless): không lỗi JS; bộ lọc, link chia sẻ, tour, hộp "Cách đọc", ngăn kéo bộ lọc trên
+màn hình 375px (không cuộn ngang), chế độ sáng/tối, điều khiển hoàn toàn bằng bàn phím.
+Lighthouse 12.8 (máy chủ local, giới hạn mặc định cho mobile): trang chính Performance 92 (mobile) / 97 (desktop),
+Accessibility 100, Best Practices 100.
