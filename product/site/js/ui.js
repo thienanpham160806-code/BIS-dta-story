@@ -179,9 +179,9 @@ export function initHowto(G) {
 }
 
 export function guideCardHTML(G, g) {
-  return `<h3>Biểu đồ này cho thấy gì</h3><p>${esc(g.shows)}</p>
-    <h3>Đọc thế nào</h3><p>${esc(g.how)}</p>
-    <h3>Đừng hiểu nhầm</h3><ul class="dont">${g.dont.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>`;
+  return `<h4 class="gc-sub">Biểu đồ này cho thấy gì</h4><p>${esc(g.shows)}</p>
+    <h4 class="gc-sub">Đọc thế nào</h4><p>${esc(g.how)}</p>
+    <h4 class="gc-sub">Đừng hiểu nhầm</h4><ul class="dont">${g.dont.map((d) => `<li>${esc(d)}</li>`).join("")}</ul>`;
 }
 
 /* ------------------------------------------------------------------ glossary tooltips */
