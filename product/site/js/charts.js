@@ -37,10 +37,23 @@ export function emptyState(el, title, hint = "", action = null) {
     action ? `<div><button class="btn" type="button" data-action="${action.id}">${esc(action.label)}</button></div>` : ""}</div>`;
 }
 
-function plot(el, traces, layout, extra = {}) {
+function plot(el, traces, layout, extra = {}, onClick = null) {
   if (el.querySelector(".skeleton, .empty, .sm-grid")) el.innerHTML = "";
-  return window.Plotly.react(el, traces, layout, { ...CFG, ...extra });
+  const first = !el.dataset.drawn;
+  el.classList.remove("draw-in", "refresh");
+  void el.offsetWidth;                                    // restart the CSS animation
+  el.classList.add(first ? "draw-in" : "refresh");
+  el.dataset.drawn = "1";
+  const p = window.Plotly.react(el, traces, layout, { ...CFG, ...extra });
+  if (el.removeAllListeners) el.removeAllListeners("plotly_click");
+  if (onClick && el.on) el.on("plotly_click", (ev) => { const k = onClick(ev.points?.[0]); if (k) clickCountry(k); });
+  return p;
 }
+
+/** Charts call this with an ISO2 code; main.js decides what opening a country means. */
+let countryHandler = null;
+export const onCountryClick = (fn) => { countryHandler = fn; };
+const clickCountry = (k) => countryHandler?.(k);
 
 /** Push end labels apart so two lines ending close together stay readable. */
 function declutter(items, span, gapFrac = 0.075) {
@@ -78,7 +91,7 @@ export function timeSeries(el, ctx, o) {
       mode: o.freq === "A" ? "lines+markers" : "lines", connectgaps: false,
       line: { color: d.color, width: 2.25, shape: o.freq === "M" ? "hv" : "linear" },
       marker: { size: 7, color: d.color, line: { color: css("--surface"), width: 1.5 } },
-      name: d.label,
+      name: d.label, meta: d.keys[0],
       hovertemplate: `<b>${esc(d.label)}</b><br>%{customdata}: %{y:${o.hoverFmt}}${o.unit ? " " + o.unit : ""}<extra></extra>`,
     });
   });
@@ -108,7 +121,7 @@ export function timeSeries(el, ctx, o) {
   L.yaxis = { ...L.yaxis, ticksuffix: o.tickSuffix || "", zeroline: !!o.zero };
   if (o.ylog) L.yaxis.type = "log";
   L.annotations = ann; L.shapes = shapes;
-  plot(el, traces, L);
+  plot(el, traces, L, {}, (pt) => pt?.data?.meta);
   return { have, missing };
 }
 
@@ -314,7 +327,7 @@ export function drawLagDots(el, ctx, b) {
     fill.push(r.censored ? css("--bg") : sel ? col : css("--chart-axis"));
     tcol.push(solid ? "#ffffff" : css("--ink-2"));
     line.push(col); size.push(sel ? big : small);
-    cd.push([I.C[r.iso2].vi, r.censored ? " (cắt cụt — cận dưới)" : "", qLabel(r.liftoff_q), qLabel(r.peak_q)]);
+    cd.push([I.C[r.iso2].vi, r.censored ? " (cắt cụt — cận dưới)" : "", qLabel(r.liftoff_q), qLabel(r.peak_q), r.iso2]);
   });
   const L = plotTemplate();
   L.margin = { l: 8, r: 8, t: 26, b: 8 };
@@ -331,8 +344,8 @@ export function drawLagDots(el, ctx, b) {
   plot(el, [{
     x: X, y: Y, text, customdata: cd, type: "scatter", mode: "markers+text",
     textfont: { size: narrow ? 7 : 9, color: tcol }, marker: { color: fill, size, line: { color: line, width: 1.6 } },
-    hovertemplate: "<b>%{customdata[0]}</b><br>Bắt đầu tăng: %{customdata[2]} · đỉnh DSR: %{customdata[3]}<br>Độ trễ: %{x} quý%{customdata[1]}<extra></extra>",
-  }], L);
+    hovertemplate: "<b>%{customdata[0]}</b><br>Bắt đầu tăng: %{customdata[2]} · đỉnh DSR: %{customdata[3]}<br>Độ trễ: %{x} quý%{customdata[1]}<br><i>Bấm để xem hồ sơ</i><extra></extra>",
+  }], L, {}, (pt) => pt?.customdata?.[4]);
 }
 
 export function renderLag(ctx) {
@@ -369,7 +382,7 @@ export function renderScatter(ctx) {
   const sel = (r) => s.c.includes(r.iso2);
   const mk = (rows, selected) => ({
     x: rows.map((r) => r.hike_pp), y: rows.map((r) => (yLag ? r.lag_q : r.rise_pp)), text: rows.map((r) => r.iso2),
-    customdata: rows.map((r) => [I.C[r.iso2].vi, r.censored ? " (cắt cụt)" : ""]),
+    customdata: rows.map((r) => [I.C[r.iso2].vi, r.censored ? " (cắt cụt)" : "", r.iso2]),
     type: "scatter", mode: "markers+text", textposition: "top center",
     textfont: { size: selected ? 12 : 10, color: selected ? css("--ink") : css("--muted") },
     marker: { size: selected ? 13 : 9, color: rows.map((r) => (r.censored ? css("--surface") : selected ? colorOf(slots, r.iso2) : css("--chart-axis"))),
@@ -381,7 +394,7 @@ export function renderScatter(ctx) {
   L.xaxis = { ...L.xaxis, type: "log", showgrid: true, title: { text: "mức tăng lãi suất, đáy → đỉnh (pp, thang log)" },
     tickvals: [1, 2, 3, 5, 10, 20, 40], ticktext: ["1", "2", "3", "5", "10", "20", "40"] };
   L.yaxis = { ...L.yaxis, title: { text: yLag ? "độ trễ (quý)" : "DSR tăng (pp)" }, zeroline: !yLag };
-  plot(el, [mk(pts.filter((r) => !sel(r)), false), mk(pts.filter(sel), true)], L);
+  plot(el, [mk(pts.filter((r) => !sel(r)), false), mk(pts.filter(sel), true)], L, {}, (pt) => pt?.customdata?.[2]);
   const ciTxt = (c) => `r = ${vn(c.r, 2)} [KTC 95% ${vn(c.lo, 2)}; ${vn(c.hi, 2)}], Spearman ρ = ${vn(c.spearman, 2)}, n = ${c.n}`;
   const smZero = sm.lo <= 0 && sm.hi >= 0;
   const cxZero = cx.lo <= 0 && cx.hi >= 0;
@@ -426,12 +439,13 @@ export function renderMap(ctx) {
   const traces = [{
     type: "choropleth", locations: onMap.map((x) => x.c.iso3), z: onMap.map((x) => x.v), zmin: -lim, zmax: lim, colorscale: scale,
     customdata: onMap.map((x) => x.c.vi), marker: { line: { color: selC, width: selW } },
-    hovertemplate: `<b>%{customdata}</b><br>${qLabel(q)}: %{z:+.1f} pp so với mức nền 20 năm<extra></extra>`,
+    hovertemplate: `<b>%{customdata}</b><br>${qLabel(q)}: %{z:+.1f} pp so với mức nền 20 năm<br><i>Bấm để xem hồ sơ</i><extra></extra>`,
     colorbar: { orientation: "h", thickness: 8, len: 0.5, x: 0.5, xanchor: "center", y: -0.02, yanchor: "top",
       ticksuffix: " pp", outlinewidth: 0, tickfont: { color: css("--ink-2"), size: 11 }, tickangle: 0,
-      tickvals: [-lim, -lim / 2, 0, lim / 2, lim] },
+      tickvals: [-lim, -lim / 2, 0, lim / 2, lim], ticktext: [-lim, -lim / 2, 0, lim / 2, lim].map((v) => `${vn(v, 0, true)} pp`) },
   }];
   if (hk) traces.push({ type: "scattergeo", lon: [114.17], lat: [22.32], mode: "markers",
+    customdata: ["HK"],
     marker: { size: 12, color: [hk.v], cmin: -lim, cmax: lim, colorscale: scale, line: { color: css("--ink"), width: s.c.includes("HK") ? 2.2 : 1 } },
     hovertemplate: `<b>${esc(hk.c.vi)}</b><br>${qLabel(q)}: ${vn(hk.v, 1, true)} pp so với mức nền 20 năm<extra></extra>` });
   const L = plotTemplate();
@@ -440,13 +454,14 @@ export function renderMap(ctx) {
     showcountries: true, countrycolor: css("--bg"), countrywidth: 0.6, bgcolor: "rgba(0,0,0,0)",
     lataxis: { range: [-50, 78] }, lonaxis: { range: [-165, 180] } };
   L.margin = { l: 0, r: 0, t: 0, b: 34 };
-  plot(el, traces, L, { topojsonURL: "vendor/" });
+  const byIso3 = Object.fromEntries(I.economies.map((c) => [c.iso3, c.iso2]));
+  plot(el, traces, L, { topojsonURL: "vendor/" }, (pt) => (pt?.location ? byIso3[pt.location] : pt?.customdata));
   const above = vals.filter((x) => x.v > 0).length;
   $("#t-map").textContent = `${above}/${vals.length} nền kinh tế vẫn trên mức nền 20 năm (${qLabel(q)})`;
   $("#d-map").textContent = `DSR ${BORROWER[s.b]}. Đỏ: cao hơn mức bình thường của chính nước đó · xanh: thấp hơn · xám: không có số liệu. Viền đậm: nước đang chọn.`;
   const sorted = [...vals].sort((a, z) => z.v - a.v);
   $("#tbl-map").innerHTML = `<table class="data"><caption class="sr-only">Độ lệch DSR ${qLabel(q)}</caption><thead><tr><th scope="col">Nước</th><th scope="col">Độ lệch (pp)</th><th scope="col">Trên/dưới mức nền</th></tr></thead><tbody>${
-    sorted.map((x) => `<tr><td>${esc(x.c.vi)}${s.c.includes(x.c.iso2) ? " ◆" : ""}</td><td>${vn(x.v, 1, true)}</td><td>${x.v > 0 ? "▲ cao hơn" : "▼ thấp hơn"}</td></tr>`).join("")}</tbody></table>`;
+    sorted.map((x) => `<tr data-iso="${x.c.iso2}" tabindex="0" aria-label="Mở hồ sơ ${esc(x.c.vi)}"><td>${esc(x.c.vi)}${s.c.includes(x.c.iso2) ? " ◆" : ""}</td><td>${vn(x.v, 1, true)}</td><td>${x.v > 0 ? "▲ cao hơn" : "▼ thấp hơn"}</td></tr>`).join("")}</tbody></table>`;
 }
 
 /* ------------------------------------------------------------------ coverage */

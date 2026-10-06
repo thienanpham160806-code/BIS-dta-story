@@ -129,7 +129,7 @@
     "map": {
       "title": "Bản đồ độ lệch DSR",
       "shows": "Độ lệch DSR so với trung bình 20 năm của chính từng nước, tại quý cuối của khoảng năm đang chọn.",
-      "how": "Đỏ đậm = cao hơn nhiều so với mức bình thường; xanh = thấp hơn; xám = không có số liệu DSR. Nước đang chọn có viền đậm. Hong Kong được vẽ bằng chấm tròn vì quá nhỏ trên bản đồ.",
+      "how": "Đỏ đậm = cao hơn nhiều so với mức bình thường; xanh = thấp hơn; xám = không có số liệu DSR. Nước đang chọn có viền đậm. Hong Kong được vẽ bằng chấm tròn vì quá nhỏ trên bản đồ. Bấm vào một nước (hoặc một dòng trong bảng số liệu) để mở hồ sơ của nước đó: độ lệch, mức DSR, độ trễ, chu kỳ lãi suất, tín dụng/GDP, nợ xấu, và nút thêm nước vào so sánh.",
       "dont": [
         "Màu đậm không có nghĩa là 'DSR cao nhất thế giới', mà là 'xa mức bình thường của chính nước đó nhất'.",
         "Diện tích lớn (Nga, Brazil) dễ gây ấn tượng mạnh hơn nước nhỏ có cùng độ lệch — đọc số trong tooltip hoặc bảng."
@@ -240,6 +240,10 @@
     {
       "q": "Có dự báo cho các năm sau không?",
       "a": "Không. Mọi biểu đồ dừng ở kỳ dữ liệu mới nhất; dự án không ngoại suy."
+    },
+    {
+      "q": "Làm sao xem nhanh mọi số liệu của một nước?",
+      "a": "Bấm vào nước đó trên bản đồ, trên biểu đồ độ trễ, biểu đồ liên quốc gia hoặc một đường trên biểu đồ DSR. Hồ sơ mở ra ở cạnh phải (trên điện thoại là từ dưới lên), có nút thêm nước vào so sánh hoặc chỉ xem riêng nước đó."
     }
   ],
   "data": {

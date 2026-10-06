@@ -19,7 +19,13 @@
   /* ---- shape --------------------------------------------------------------- */
   --radius-sm: 2px; --radius: 3px; --radius-lg: 4px; --radius-pill: 999px;
   --rule-strong: 3px;
-  --shadow-pop: 0 8px 24px rgba(26, 24, 20, .14);   /* drawers, popovers, tour only */
+  --shadow-pop: 0 8px 24px rgba(26, 24, 20, .14);   /* drawers, popovers, tour */
+  --radius-card: 12px;
+  --shadow-card: 0 1px 2px rgba(26, 24, 20, .05), 0 6px 20px -6px rgba(26, 24, 20, .10);
+  --shadow-card-hover: 0 2px 4px rgba(26, 24, 20, .06), 0 18px 40px -12px rgba(26, 24, 20, .22);
+  --glow: radial-gradient(1100px 420px at 8% -8%, rgba(31, 78, 140, .07), transparent 60%),
+          radial-gradient(900px 380px at 100% 0%, rgba(156, 43, 43, .05), transparent 55%);
+  --toolbar-bg: rgba(252, 251, 248, .78);
 
   /* ---- z-index scale ------------------------------------------------------- */
   --z-sticky: 10; --z-popover: 20; --z-drawer: 30; --z-tour: 40; --z-toast: 50;
@@ -62,6 +68,11 @@
   --skeleton: #26241f;
   --chart-grid: #2b2925; --chart-axis: #46423a;
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, .55);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 8px 24px -8px rgba(0, 0, 0, .6);
+  --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 22px 44px -14px rgba(0, 0, 0, .75);
+  --glow: radial-gradient(1100px 420px at 8% -8%, rgba(143, 179, 230, .09), transparent 60%),
+          radial-gradient(900px 380px at 100% 0%, rgba(239, 143, 134, .06), transparent 55%);
+  --toolbar-bg: rgba(27, 26, 23, .78);
 
   --cat-1: #3987e5; --cat-2: #d95926; --cat-3: #199e70; --cat-4: #c98500;
   --cat-5: #d55181; --cat-6: #008300; --cat-7: #9085e9; --cat-8: #e66767;

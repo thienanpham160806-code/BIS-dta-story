@@ -120,6 +120,18 @@ def main() -> None:
                      "liftoff": ts(r.liftoff), "peak": num(r.peak, 4), "peak_date": ts(r.peak_date),
                      "hike_pp": num(r.hike_pp, 4), "reason": r.reason, "policy_code": r.policy_code}
 
+    # Latest value of the deferred series, so first-screen text never waits for them.
+    def latest_of(df, col, d):
+        if col not in df:
+            return None
+        s = df[col].dropna()
+        return {"date": ts(s.index[-1]), "v": num(s.iloc[-1], d)} if len(s) else None
+    latest = {}
+    for c in cty.iso2:
+        rec = {f"credit_{b}": latest_of(T["credit"], f"{c}_{b}", 2) for b in "HNP"}
+        rec.update(policy=latest_of(T["policy"], c, 4), npl=latest_of(T["npl"], c, 3))
+        latest[c] = {k: v for k, v in rec.items() if v}
+
     lags = R.lags.copy()
     lags = records(lags)
 
@@ -152,6 +164,7 @@ def main() -> None:
         "cross": json.loads(json.dumps(R.cross, default=lambda o: None)),
         "npl_corr": records(R.npl_corr),
         "recovery": records(R.recovery),
+        "latest": latest,
     }
     # Two files: everything the first screen needs (headline, KPIs, map, lag, scatter)
     # in data.json; the long level/credit/policy/NPL series in data-series.json, which

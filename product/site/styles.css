@@ -414,3 +414,134 @@ html.animate-views .view { animation: fade var(--dur) var(--ease); }
 @media (forced-colors: active) {
   .seg button[aria-pressed="true"] { outline: 2px solid CanvasText; }
 }
+
+/* =============================================================================
+   Depth and motion (second review). Motion is for entrances and state changes
+   only, never on data while it is being read; all of it is off for
+   prefers-reduced-motion.
+   ============================================================================= */
+body { background: var(--glow), var(--bg); background-attachment: fixed; }
+
+/* frosted, sticky toolbar that lifts once the page scrolls */
+.filters { background: var(--toolbar-bg); -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3);
+           transition: box-shadow var(--dur) var(--ease); }
+.filters.stuck { box-shadow: 0 8px 24px -14px rgba(26, 24, 20, .35); }
+.top { background: transparent; }
+
+/* cards float on the page */
+.card {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius-card); padding: var(--sp-5) var(--sp-5) var(--sp-4); box-shadow: var(--shadow-card);
+  transition: transform 260ms var(--ease), box-shadow 260ms var(--ease), border-color 260ms var(--ease);
+}
+.card:hover { transform: translateY(-3px); box-shadow: var(--shadow-card-hover); border-color: var(--rule-2); }
+.card:focus-within { border-color: var(--rule-2); }
+.grid { gap: var(--sp-5); }
+
+/* KPI tiles */
+.kpis { border: 0; padding: 0; gap: var(--sp-4); }
+.kpi, .kpi:first-child {
+  position: relative; overflow: hidden; padding: var(--sp-4) var(--sp-5); border: 1px solid var(--rule);
+  border-radius: var(--radius-card); background: var(--surface); box-shadow: var(--shadow-card);
+  transition: transform 260ms var(--ease), box-shadow 260ms var(--ease);
+}
+.kpi::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--kpi-accent, var(--accent)); }
+.kpi:nth-child(1) { --kpi-accent: var(--accent); }
+.kpi:nth-child(2) { --kpi-accent: linear-gradient(90deg, var(--div-neg-3), var(--div-mid), var(--div-pos-3)); }
+.kpi:nth-child(3) { --kpi-accent: var(--cat-4); }
+.kpi:nth-child(4) { --kpi-accent: var(--kicker); }
+.kpi:hover { transform: translateY(-3px); box-shadow: var(--shadow-card-hover); }
+
+/* section numbers get an accent rule */
+.sec-no { position: relative; padding-bottom: 6px; }
+.sec-no::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: var(--kicker);
+                 transform-origin: left; transition: transform 700ms var(--ease) 150ms; }
+
+/* scroll reveal: classes are added by JS only when motion is allowed */
+.motion .reveal { opacity: 0; transform: translateY(18px); transition: opacity 650ms var(--ease), transform 650ms var(--ease),
+                  box-shadow 260ms var(--ease); transition-delay: var(--d, 0ms); }
+.motion .reveal.in { opacity: 1; transform: none; }
+.motion .reveal.in:hover { transform: translateY(-3px); transition-delay: 0ms; }
+.motion .dsec .sec-no::after { transform: scaleX(0); }
+.motion .dsec.in .sec-no::after { transform: scaleX(1); }
+
+/* charts draw in left to right the first time they appear; later updates crossfade */
+.motion .plot.draw-in .plot-container { animation: wipe 1100ms var(--ease) both; }
+@keyframes wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+.motion .plot.refresh .plot-container { animation: soft 380ms var(--ease) both; }
+@keyframes soft { from { opacity: .35; } to { opacity: 1; } }
+
+/* buttons feel tactile */
+.btn, .seg button, .cpick, .howto, .chip, .quick button, .preset {
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease),
+              transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); }
+.btn:active, .seg button:active, .cpick:active, .howto:active { transform: translateY(1px) scale(.98); }
+.cpick:hover, .btn.ghost-accent:hover { box-shadow: 0 4px 14px -6px rgba(31, 78, 140, .45); }
+.help-fab { transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease); }
+.help-fab:hover { transform: translateY(-2px) rotate(-8deg); }
+.preset:hover { transform: translateY(-3px); box-shadow: var(--shadow-card-hover); }
+
+/* the map invites a click */
+#p-map .choroplethlocation, #p-map .scattergeo .point { cursor: pointer; }
+.map-hint { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-xs); font-weight: 600; color: var(--accent); margin: 0 0 var(--sp-2); }
+.map-hint::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(31, 78, 140, .5); } 70% { box-shadow: 0 0 0 9px rgba(31, 78, 140, 0); } 100% { box-shadow: 0 0 0 0 rgba(31, 78, 140, 0); } }
+#tbl-map tr[data-iso] { cursor: pointer; }
+#tbl-map tr[data-iso]:hover td, #tbl-map tr[data-iso]:focus-visible td { background: var(--surface-2); }
+
+/* ---------------------------------------------------------------- country profile drawer */
+.cprof-scrim { position: fixed; inset: 0; z-index: calc(var(--z-drawer) + 1); background: rgba(10, 9, 7, .38);
+               opacity: 0; transition: opacity 280ms var(--ease); }
+.cprof-scrim.open { opacity: 1; }
+.cprof {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: calc(var(--z-drawer) + 2); width: min(460px, 100vw);
+  background: var(--surface); border-left: 1px solid var(--rule-2); box-shadow: -24px 0 60px -20px rgba(10, 9, 7, .45);
+  display: flex; flex-direction: column; transform: translateX(104%); visibility: hidden;
+  transition: transform 380ms cubic-bezier(.2, .8, .2, 1), visibility 0s linear 380ms;
+}
+.cprof.open { transform: none; visibility: visible; transition: transform 380ms cubic-bezier(.2, .8, .2, 1); }
+.cprof-head { padding: var(--sp-5) 64px var(--sp-4) var(--sp-5); border-bottom: 1px solid var(--rule); position: relative; overflow: hidden; }
+.cprof-head::after { content: ""; position: absolute; inset: auto 0 0 0; height: 4px; background: var(--cprof-color, var(--accent)); }
+.cprof-head h2 { margin: 6px 0 0; font: 600 30px/1.1 var(--font-head); letter-spacing: -.015em; }
+.cprof-head .sub { margin: 6px 0 0; font-size: var(--fs-sm); color: var(--ink-2); }
+.cprof-head .iconbtn { position: absolute; top: var(--sp-4); right: var(--sp-4); }
+.cprof-body { overflow-y: auto; padding: var(--sp-4) var(--sp-5) var(--sp-6); display: grid; gap: var(--sp-5); flex: 1; }
+.cprof-hero { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.cprof-stat { background: var(--bg); border: 1px solid var(--rule); border-radius: 10px; padding: var(--sp-3) var(--sp-4); }
+.cprof-stat .k { font: 600 11px/1.3 var(--font-ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.cprof-stat .v { font: 500 30px/1.1 var(--font-head); margin-top: 6px; font-variant-numeric: lining-nums tabular-nums; }
+.cprof-stat .v small { font-size: 15px; color: var(--ink-2); margin-left: 3px; }
+.cprof-stat .v .delta { font: 600 14px/1 var(--font-ui); margin-right: 4px; vertical-align: 5px; }
+.cprof-stat .v .delta.up { color: var(--div-pos-4); }
+.cprof-stat .v .delta.down { color: var(--div-neg-4); }
+.cprof-stat .s { font-size: var(--fs-xs); color: var(--ink-2); margin-top: 2px; }
+.cprof-spark { height: 160px; }
+.cprof h3 { font: 600 var(--fs-xs)/1.3 var(--font-ui); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0 0 var(--sp-2); }
+.cprof dl { display: grid; grid-template-columns: auto 1fr; gap: 7px var(--sp-4); margin: 0; font-size: var(--fs-sm); }
+.cprof dt { color: var(--ink-2); }
+.cprof dd { margin: 0; text-align: right; font-weight: 600; }
+.cprof dd.na { color: var(--muted); font-weight: 400; }
+.cprof .note-box { font-size: var(--fs-sm); color: var(--ink-2); background: var(--accent-soft); border-radius: 8px; padding: var(--sp-3) var(--sp-4); }
+.cprof-actions { display: flex; gap: var(--sp-2); padding: var(--sp-4) var(--sp-5); border-top: 1px solid var(--rule); background: var(--surface); }
+.cprof-actions .btn { flex: 1; min-height: 44px; }
+.motion .cprof.open .cprof-body > * { animation: rise 520ms var(--ease) both; }
+.motion .cprof.open .cprof-body > *:nth-child(2) { animation-delay: 70ms; }
+.motion .cprof.open .cprof-body > *:nth-child(3) { animation-delay: 140ms; }
+.motion .cprof.open .cprof-body > *:nth-child(4) { animation-delay: 210ms; }
+.motion .cprof.open .cprof-body > *:nth-child(5) { animation-delay: 280ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 760px) {
+  /* backdrop-filter would make the fixed filter drawer inside the toolbar relative to it */
+  .filters { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--surface); }
+  .cprof { top: auto; left: 0; width: 100vw; max-height: 88vh; border-left: 0; border-top: 1px solid var(--rule-2);
+           border-radius: 18px 18px 0 0; transform: translateY(104%); }
+  .card { padding: var(--sp-4); }
+  .kpi, .kpi:first-child { padding: var(--sp-3); }
+  .grid { gap: var(--sp-4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card:hover, .kpi:hover, .preset:hover, .help-fab:hover, .btn:active, .seg button:active { transform: none; }
+  .map-hint::before { animation: none; }
+  .cprof, .cprof.open, .cprof-scrim { transition: none; }
+}

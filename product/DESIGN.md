@@ -95,3 +95,20 @@ Lighthouse Accessibility ≥ 90, Performance ≥ 85 · chữ đạt WCAG AA · �
   chấm ở cuối mỗi đường; biểu đồ độ trễ chỉ ghi nhãn nước đang chọn; bản đồ cắt bớt vùng cực, thanh màu nằm ngang,
   đất "không có dữ liệu" nhạt hơn để nước có số liệu nổi lên.
 
+## Lượt chỉnh thứ 3 — chiều sâu, chuyển động, hồ sơ nước
+
+Theo yêu cầu "nhìn khô cứng quá", nới quy tắc "không đổ bóng" của hướng A, nhưng vẫn giữ: hiệu ứng không đặt lên
+vùng số liệu đang đọc, và tắt hết khi `prefers-reduced-motion: reduce`.
+
+- **Chiều sâu:** thẻ biểu đồ và thẻ KPI là bề mặt nổi (`--shadow-card`, bo `--radius-card` 12px), nhấc lên 3px khi rê
+  chuột; thẻ KPI có dải màu 3px phía trên (KPI độ lệch dùng chính thang phân kỳ); nền có quầng sáng rất nhẹ (`--glow`);
+  thanh lọc mờ kính (`backdrop-filter`) và có bóng khi trang đã cuộn (trên điện thoại dùng nền đặc, vì `backdrop-filter`
+  làm ngăn kéo bộ lọc bên trong mất vị trí cố định).
+- **Chuyển động:** thẻ và phần đánh số hiện dần khi cuộn tới (650ms, so le 70–90ms); số KPI đếm lên tới giá trị mới
+  (900ms); biểu đồ vẽ từ trái sang phải lần đầu xuất hiện, các lần cập nhật sau chỉ mờ-rõ 380ms; nút có phản hồi khi bấm.
+- **Hồ sơ nước:** bấm vào nước trên bản đồ, dòng trong bảng bản đồ, chấm trên biểu đồ độ trễ/liên quốc gia hoặc đường
+  DSR → ngăn kéo bên phải (điện thoại: tấm trượt từ dưới lên) với độ lệch, mức DSR, độ trễ, mức đã gỡ, đường độ lệch từ
+  2006, chu kỳ lãi suất, tín dụng/GDP, NPL, ghi chú chế độ tỷ giá, nút thêm/bỏ khỏi so sánh. Bàn phím: Enter trên dòng
+  bảng để mở, Esc để đóng, focus được giữ trong ngăn kéo rồi trả về chỗ cũ.
+- **Hiệu năng:** thư viện biểu đồ chỉ tải sau khi màn hình đầu đã vẽ xong; hình trong trang Câu chuyện vẽ khi cuộn tới.
+

@@ -119,9 +119,12 @@ The site has three pages: **Bảng điều khiển** (dashboard), **Câu chuyệ
 2. **Choose the borrower group.** P, H or N. H and N are hidden when none of the selected economies publishes them.
 3. **Choose the years.** The two-handle slider also works with the arrow keys. Its end year sets the quarter coloured on the world map and used by the KPI cards.
 4. **Level or deviation.** The default view is the deviation from each economy's own 20-year mean. The level view carries a warning that levels are not comparable across countries.
-5. **Share.** Every filter is stored in the address (for example `?c=KR,TH,MY,HK&from=2016&to=2026&b=P`). *Sao chép link* copies it.
+5. **Open a country profile.** Clicking a country on the map, a row of the map's table, a dot on the lag or cross-country chart, or a line on the DSR chart opens a profile. It shows the gap and level against the 20-year mean, the lag and its status, the rate cycle, credit/GDP, NPL and a sparkline since 2006, with buttons to add the economy to the comparison or view it alone.
+6. **Share.** Every filter is stored in the address (for example `?c=KR,TH,MY,HK&from=2016&to=2026&b=P`). *Sao chép link* copies it.
 
-Every chart title states the finding, computed from the data. The source and unit sit under each chart, and **ⓘ Cách đọc** opens a short card with three parts: what the chart shows, how to read it, and what not to conclude from it. On first visit a five-step tour points at the controls, and the **?** button reopens it. Missing data appear as gaps with a note naming the economies. The light and dark themes share one chart template.
+Every chart title states the finding, computed from the data. The source and unit sit under each chart, and **ⓘ Cách đọc** opens a short card with three parts: what the chart shows, how to read it, and what not to conclude from it. On first visit a five-step tour points at the controls, and the **?** button reopens it. Missing data appear as gaps with a note naming the economies. The light and dark themes share one chart template. Cards, KPI tiles and charts animate in as they scroll into view, and charts draw from left to right the first time. All motion is switched off when the system asks for reduced motion.
+
+![Country profile opened from the map](docs/screenshots/country-profile-light.png)
 
 | Mobile (375 px), dark | Filters as a drawer on mobile | Story page |
 |---|---|---|
@@ -131,9 +134,9 @@ Measured with Lighthouse 12.8 against the local server, with default mobile thro
 
 | Page | Performance (mobile) | Performance (desktop) | Accessibility | Best practices |
 |---|---|---|---|---|
-| Dashboard | 92 | 97 | 100 | 100 |
-| Story | 86 | – | 100 | – |
-| Guide | 98 | – | 100 | – |
+| Dashboard | 91 | 100 | 100 | 100 |
+| Story | 84–88 | – | 100 | 100 |
+| Guide | 97 | – | 100 | 100 |
 
 ## Limitations
 

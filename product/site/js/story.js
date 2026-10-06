@@ -1,7 +1,7 @@
 // "Câu chuyện dữ liệu": a fixed narrative on the four original economies, plus one
 // section placing them in the global lag distribution. Every number is read from
 // data.json; sentences whose direction depends on the data are chosen at run time.
-import { $, css, esc, vn, qLabel, periodLabel, expand, lastValid } from "./util.js";
+import { $, css, esc, vn, qLabel, periodLabel } from "./util.js";
 import { FOCUS, assignSlots, colorOf } from "./state.js";
 import { timeSeries, drawLagDots, plotTemplate, lagStatus } from "./charts.js";
 import { term } from "./ui.js";
@@ -33,7 +33,7 @@ export function renderStory(I) {
   const smZero = sm.lo <= 0 && sm.hi >= 0;
   const npl = FOCUS.map((k) => ({ k, r: I.npl[k] })).filter((x) => x.r);
   const nplCIzero = npl.filter((x) => x.r.lo_change <= 0 && x.r.hi_change >= 0).length;
-  const credit = (k) => (D.series.credit ? lastValid(expand(D.series.credit[`${k}_P`], "Q")) : null);
+  const credit = (k) => { const l = D.latest[k]?.credit_P; return l ? { x: l.date, y: l.v } : null; };
   const cens = D.lags.filter((r) => r.borrower === "P" && r.censored).map((r) => name(r.iso2));
   const noCycle = D.lags.filter((r) => r.borrower === "P" && !r.has_cycle).map((r) => name(r.iso2));
   const S = D.meta.summary;
@@ -141,19 +141,30 @@ export function renderStoryFigures(I) {
   const slots = assignSlots(FOCUS);
   const ctx = { I, slots, s: { c: FOCUS, from: 2016, to: I.maxYear, b: "P", v: "gap" } };
   const ds = D.series.gap;
-  timeSeries($("#s-gap"), ctx, {
-    get: (k) => ds[`${k}_P`], freq: "Q", unit: "pp so với mức nền", hoverFmt: "+.1f", labelFmt: (v) => vn(v, 1, true),
-    tickSuffix: " pp", zero: true, rings: FOCUS.map((k) => ({ k, x: I.lag[`${k}_P`]?.liftoff_q })).filter((r) => r.x), emptyCell: "",
-  });
   const pctx = { ...ctx, s: { ...ctx.s, from: 2019 } };
   const groups = [...FOCUS.map((k) => ({ keys: [k], label: name(k), color: colorOf(slots, k) })),
     { keys: ["US"], label: "Mỹ (Fed)", color: css("--muted") }];
-  timeSeries($("#s-policy"), pctx, {
-    groups, get: (k) => D.series.policy[k], freq: "M", unit: "%/năm", hoverFmt: ".2f", labelFmt: (v) => vn(v, 2) + "%", tickSuffix: "%", emptyCell: "",
-  });
-  drawLagDots($("#s-lag"), ctx, "P");
-  drawRecovery($("#s-rec"), I, slots, [...FOCUS.map((k) => `${k}_P`), "KR_H", "KR_N"]);
+  // Each figure is drawn when it scrolls into view, not all at once.
+  const jobs = {
+    "s-gap": () => timeSeries($("#s-gap"), ctx, {
+      get: (k) => ds[`${k}_P`], freq: "Q", unit: "pp so với mức nền", hoverFmt: "+.1f", labelFmt: (v) => vn(v, 1, true),
+      tickSuffix: " pp", zero: true, rings: FOCUS.map((k) => ({ k, x: I.lag[`${k}_P`]?.liftoff_q })).filter((r) => r.x), emptyCell: "",
+    }),
+    "s-policy": () => timeSeries($("#s-policy"), pctx, {
+      groups, get: (k) => D.series.policy[k], freq: "M", unit: "%/năm", hoverFmt: ".2f", labelFmt: (v) => vn(v, 2) + "%", tickSuffix: "%", emptyCell: "",
+    }),
+    "s-lag": () => drawLagDots($("#s-lag"), ctx, "P"),
+    "s-rec": () => drawRecovery($("#s-rec"), I, slots, [...FOCUS.map((k) => `${k}_P`), "KR_H", "KR_N"]),
+  };
+  storyIO?.disconnect();
+  storyIO = new IntersectionObserver((es) => es.forEach((e) => {
+    if (!e.isIntersecting) return;
+    storyIO.unobserve(e.target);
+    jobs[e.target.id]?.();
+  }), { rootMargin: "0px 0px 150px 0px" });
+  Object.keys(jobs).forEach((id) => storyIO.observe($(`#${id}`)));
 }
+let storyIO = null;
 
 function drawRecovery(el, I, slots, series) {
   const rows = series.map((s) => I.rec[s]).filter(Boolean);
