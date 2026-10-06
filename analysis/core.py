@@ -220,7 +220,8 @@ def measure_lag(dsr: pd.Series, liftoff) -> dict:
     peak     = first quarter with the maximum DSR from the lift-off quarter onwards
     censored = the peak is the last observation in the sample: the true peak may be later,
                so the lag is only a lower bound
-    no_rise  = DSR never exceeded its pre-lift-off level (no transmission peak to time)
+    no_rise  = no transmission peak to time: DSR never exceeded its pre-lift-off level, or
+               its maximum is the lift-off quarter itself (it only fell after the hike)
 
     Precision is +/-1 quarter: lift-off is monthly, DSR is a quarterly ratio.
     """
@@ -241,7 +242,7 @@ def measure_lag(dsr: pd.Series, liftoff) -> dict:
     out.update(ok=True, liftoff_q=lift_q_end, base=base, peak_q=pk_date, peak=pk,
                lag_q=quarter_index(pk_date) - quarter_index(lift_q_end),
                rise_pp=pk - base, last_q=s.index.max())
-    out["no_rise"] = bool(pk - base <= NO_RISE_TOL)
+    out["no_rise"] = bool(pk - base <= NO_RISE_TOL or pk_date == lift_q_end)
     out["censored"] = bool(pk_date == s.index.max() and not out["no_rise"])
     return out
 
@@ -379,7 +380,7 @@ def run_all(data_dir: Path | str) -> Results:
         lag_rows.append(rec)
     lags = pd.DataFrame(lag_rows)
     for col in ("censored", "no_rise"):
-        lags[col] = lags[col].fillna(False).astype(bool)
+        lags[col] = lags[col].eq(True)
 
     usable = lags[lags.has_cycle & lags.lag_q.notna() & ~lags.no_rise]
     dist = {}
