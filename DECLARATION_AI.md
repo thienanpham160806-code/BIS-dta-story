@@ -5,9 +5,9 @@
 | | |
 |---|---|
 | **Đề tài** | Chủ đề 1 — Độ trễ chính sách thắt chặt tiền tệ & "gánh nặng âm thầm" lên Hộ gia đình & Doanh nghiệp |
-| **Sinh viên** | _(họ tên)_ — _(MSSV)_ |
-| **Công cụ AI đã dùng** | Claude Opus 5 (Anthropic), qua giao diện dòng lệnh **Claude Code** |
-| **Thời gian sử dụng** | 11/09/2026 |
+| **Sinh viên** | Phạm Ngọc Thiên An — K244141653 |
+| **Công cụ AI đã dùng** | Claude Opus 5 (Anthropic), qua giao diện dòng lệnh **Claude Code**; đợt mở rộng: Claude Opus 5.5 (Anthropic), qua **Claude Code** (xem mục 4) |
+| **Thời gian sử dụng** | 11/09/2026; đợt mở rộng 06/10/2026 |
 | **Mức độ** | Có sử dụng AI, **khai báo đầy đủ dưới đây** |
 
 ---
@@ -180,6 +180,58 @@ về mọi số liệu cũng như mọi kết luận trong sản phẩm.
 4. Tôi sẵn sàng trình bày và bảo vệ mọi con số, mọi lựa chọn phương pháp và mọi kết luận trong
    đồ án này khi được hỏi.
 
+## 4. Khai báo bổ sung — đợt mở rộng ngày 06/10/2026
+
+Đợt này mở rộng đồ án từ 4 nước lên **mọi nền kinh tế mà BIS công bố**, làm lại dashboard và viết lại
+README bằng tiếng Anh. Công cụ: **Claude Opus 5.5 (Anthropic), qua Claude Code**. Khai báo trung thực:
+AI tiếp tục **viết phần lớn mã nguồn và tài liệu** của đợt này, và **chạy các phép tính** tạo ra mọi con số mới.
+
+### 4.1. AI đã làm những việc sau
+
+| Việc | Tệp |
+|---|---|
+| Viết lại `fetch_data.py`: tải mọi nền kinh tế, toàn bộ lịch sử, có cache và thử lại; đọc danh sách thành viên khu vực euro + năm gia nhập từ trang ECB và nhóm advanced/emerging từ tài liệu phân loại của BIS (không gõ tay); sinh `countries.csv`, `coverage.csv` | `scripts/fetch_data.py`, `data/meta/` |
+| Viết module phân tích dùng chung (mốc 20 năm, thuật toán mốc tăng lãi suất, độ trễ theo quý, đánh dấu cắt cụt, ánh xạ lãi suất ECB, khoảng tin cậy Fisher z) để notebook và web không tính hai lần | `analysis/core.py` |
+| Viết bộ kiểm thử trên chuỗi giả có đáp án biết trước | `tests/test_core.py` |
+| Viết lại notebook; phần câu chuyện được sinh từ kết quả chạy để chữ và số luôn khớp | `notebooks/01_analysis.ipynb` |
+| Dùng skill **ui-ux-pro-max** để đề xuất design system và 2 hướng thiết kế kèm ảnh chụp; dựng lại toàn bộ dashboard, trang hướng dẫn, tour giới thiệu | `product/` |
+| Viết README tiếng Anh, `INTERVIEW_NOTES.md`, cấu hình CI (GitHub Actions) và cấu hình deploy tĩnh (Vercel, chưa deploy) | — |
+| Đo Lighthouse, kiểm thử bằng trình duyệt headless (Playwright), chụp ảnh màn hình và GIF | `docs/screenshots/` |
+
+### 4.2. Phần sinh viên quyết định
+
+- **Đặt toàn bộ yêu cầu và ràng buộc trước khi làm:** lấy mọi nước, không nội suy, không điền giá trị giả,
+  mọi so sánh giữa các nước phải dùng độ lệch so với trung bình 20 năm của chính nước đó, mốc tăng lãi suất
+  phải xác định bằng thuật toán, kết quả chính dùng chuỗi PNFS (P), mọi hệ số tương quan phải có n và khoảng
+  tin cậy, bỏ các câu ngoại suy không có dữ liệu ủng hộ, và mọi con số trong README phải lấy từ kết quả chạy thật.
+- **Chọn hướng thiết kế A (biên tập)** trong hai hướng AI đề xuất, sau khi xem ảnh chụp trên dữ liệu thật.
+- **Chọn quy tắc gán màu:** 4 nước gốc giữ màu cố định, nước khác nhận màu theo thứ tự trong link — thay vì gán
+  cố định 52 nước vào 8 màu (sẽ trùng màu).
+- Yêu cầu xem ảnh chụp desktop và mobile ở cả hai chế độ sáng/tối trước khi merge.
+
+### 4.3. Dữ liệu mới làm thay đổi một số kết luận cũ — giữ nguyên như dữ liệu nói
+
+- **BIS đã sửa số liệu Hàn Quốc.** Với dữ liệu mới, hộ gia đình Hàn Quốc đạt đỉnh **sau** doanh nghiệp
+  (12 quý so với 8 quý), ngược với nhận định cũ "hộ gia đình ngấm đòn trước".
+- **Độ trễ nay đo bằng quý (±1 quý)** trên toàn bộ các nước có đủ dữ liệu; con số "24,5 tháng" ở bản cũ
+  (tính trên 6 chuỗi) được thay bằng trung vị 8 quý trên 22 nền kinh tế.
+- **Bỏ câu ngoại suy** "gánh nặng sẽ đổ xuống tận 2028" vì không có dữ liệu ủng hộ.
+- **Tương quan liên quốc gia dễ gãy:** mức tăng lãi suất và mức tăng DSR có r = 0,91, nhưng chỉ còn 0,09 (khoảng
+  tin cậy chứa 0) khi bỏ 4 chu kỳ tăng trên 10 điểm %. Kết quả này được nêu rõ, không làm mờ đi.
+- **Croatia:** bước nhảy lãi suất đúng tháng gia nhập euro (01/2023) là đổi từ lãi suất quốc gia sang lãi suất ECB,
+  không phải một lần tăng lãi suất, nên không được tính là mốc tăng.
+
+### 4.4. Các nguyên tắc ở mục 1.3 vẫn áp dụng nguyên vẹn
+
+Không bịa số, không lấp dữ liệu thiếu, không chế chuỗi tách nhóm giả, không ép kết luận. Toàn bộ dữ liệu mới vẫn
+tải trực tiếp từ BIS SDMX API v2, World Bank API, trang euro area của ECB và tài liệu phân loại nước của BIS bằng
+`python scripts/fetch_data.py`.
+
+Tôi chịu trách nhiệm rà soát lại toàn bộ phần mở rộng này trước khi nộp, và sẵn sàng giải thích mọi con số,
+mọi lựa chọn phương pháp trong đợt mở rộng như với phần gốc.
+
+---
+
 <br>
 
 **Ngày 11 tháng 09 năm 2026**
@@ -189,4 +241,4 @@ Sinh viên ký tên
 <br><br>
 
 _____________________
-_(họ tên)_
+Phạm Ngọc Thiên An — MSSV K244141653
