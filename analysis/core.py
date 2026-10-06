@@ -36,6 +36,7 @@ CYCLE_WINDOW = ("2021-01-01", "2023-12-31")   # where the lift-off must happen
 CYCLE_PEAK_END = "2024-12-31"                 # policy-rate peak searched up to here
 BENCH_QUARTERS = 80                           # 20 years
 NO_RISE_TOL = 0.0                             # DSR must exceed its pre-lift-off level
+LARGE_HIKE_PP = 10.0                          # robustness cut for the cross-country scatter
 
 
 # ============================================================================ dates
@@ -414,7 +415,13 @@ def run_all(data_dir: Path | str) -> Results:
 
     # ---- cross-country: hike size vs DSR rise / lag (P series, economies with a cycle)
     p = usable[usable.borrower == "P"]
+    small = p[p.hike_pp <= LARGE_HIKE_PP]
     cross = {
+        # Robustness: drop very large hiking cycles (high-inflation economies), which
+        # dominate a Pearson coefficient on n of about 20.
+        "hike_vs_rise_small": {**corr_with_ci(small.hike_pp, small.rise_pp),
+                               "excluded": sorted(set(p.iso2) - set(small.iso2)),
+                               "threshold_pp": LARGE_HIKE_PP},
         "hike_vs_rise": {**corr_with_ci(p.hike_pp, p.rise_pp),
                          "spearman": corr_with_ci(p.hike_pp, p.rise_pp, "spearman")["r"]},
         "hike_vs_lag": {**corr_with_ci(p.loc[~p.censored, "hike_pp"], p.loc[~p.censored, "lag_q"]),
