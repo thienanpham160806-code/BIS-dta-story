@@ -45,7 +45,8 @@ def compare(a, b, path, out, tiny):
             compare(x, y, f"{path}[{i}]", out, tiny)
     elif isinstance(a, (int, float)) and isinstance(b, (int, float)) and not isinstance(a, bool) and not isinstance(b, bool):
         if a != b:
-            tol = 1.0001 * max(last_digit(float(a)), last_digit(float(b)))
+            tol = max(1.0001 * max(last_digit(float(a)), last_digit(float(b))),
+                      1e-12 * max(1.0, abs(a), abs(b)))          # machine-precision noise
             (tiny if abs(a - b) <= tol else out).append(f"{path}: committed {a} vs rebuilt {b}")
     elif a != b:
         out.append(f"{path}: committed {a!r} vs rebuilt {b!r}")

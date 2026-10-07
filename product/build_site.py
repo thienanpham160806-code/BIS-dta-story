@@ -66,6 +66,18 @@ def frame(df: pd.DataFrame, d: int) -> dict:
     return out
 
 
+def rounded(obj, d: int = 6):
+    """Round every float in a JSON tree: 16-digit floats differ across platforms in
+    the last digit, and no published figure needs more than a few decimals."""
+    if isinstance(obj, float):
+        return None if math.isnan(obj) else round(obj, d)
+    if isinstance(obj, list):
+        return [rounded(x, d) for x in obj]
+    if isinstance(obj, dict):
+        return {k: rounded(v, d) for k, v in obj.items()}
+    return obj
+
+
 def records(df: pd.DataFrame) -> list:
     rows = []
     for r in df.to_dict("records"):
@@ -160,8 +172,8 @@ def main(out: Path = SITE) -> None:
         "bench": bench,
         "cycles": cycles,
         "lags": lags,
-        "lag_dist": json.loads(json.dumps(R.lag_dist, default=lambda o: None)),
-        "cross": json.loads(json.dumps(R.cross, default=lambda o: None)),
+        "lag_dist": rounded(json.loads(json.dumps(R.lag_dist, default=lambda o: None))),
+        "cross": rounded(json.loads(json.dumps(R.cross, default=lambda o: None))),
         "npl_corr": records(R.npl_corr),
         "recovery": records(R.recovery),
         "latest": latest,
