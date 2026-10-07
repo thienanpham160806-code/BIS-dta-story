@@ -10,7 +10,7 @@ When a central bank starts raising rates, the private sector does not feel it at
 
 ---
 
-**Contents** · [Research question](#research-question) · [Data](#data) · [Methodology](#methodology) · [Key findings](#key-findings) · [How to use the dashboard](#how-to-use-the-dashboard) · [Limitations](#limitations) · [How to run](#how-to-run) · [Project structure](#project-structure) · [Author](#author) · [Use of AI tools](#use-of-ai-tools)
+**Contents** · [Research question](#research-question) · [Architecture](#architecture) · [Data](#data) · [Methodology](#methodology) · [Key findings](#key-findings) · [How to use the dashboard](#how-to-use-the-dashboard) · [Limitations](#limitations) · [How to run](#how-to-run) · [Project structure](#project-structure) · [Author](#author) · [Use of AI tools](#use-of-ai-tools)
 
 ## Research question
 
@@ -22,6 +22,58 @@ I answer at two levels:
 - **Focus.** Korea, Thailand, Malaysia and Hong Kong SAR, the four economies the project started with, placed inside that distribution.
 
 Every comparison is made against an economy's **own history**. The BIS warns that DSR levels are not comparable across countries: income definitions, loan maturities and lending structures differ too much.
+
+## Architecture
+
+One analysis module feeds both the notebook and the dashboard, so the two can never disagree. Every number on the site is computed from `data/raw`.
+
+```mermaid
+flowchart LR
+    subgraph SRC["Official sources"]
+        direction TB
+        BIS["BIS SDMX API v2<br/>WS_DSR · WS_TC · WS_CBPOL"]
+        WB["World Bank API<br/>NPL ratio, country regions"]
+        ECB["ECB euro area page<br/>members + adoption year"]
+        GRP["BIS country groupings PDF<br/>advanced / emerging"]
+    end
+
+    FETCH["scripts/fetch_data.py<br/>cache · retry"]
+
+    subgraph DATA["data/"]
+        direction TB
+        RAW[("raw/<br/>files as downloaded")]
+        META[("meta/<br/>countries · coverage · euro members")]
+    end
+
+    CORE["analysis/core.py<br/>20-year benchmark · lift-off rule<br/>lag + censoring · ECB mapping · CIs"]
+
+    NB["notebooks/01_analysis.ipynb<br/>analysis + data story"]
+    PROC[("data/processed/")]
+    BUILD["product/build_site.py"]
+    JSON[("site/data.json<br/>site/data-series.json")]
+
+    subgraph SITE["product/site — static, offline"]
+        direction TB
+        UI["Dashboard · Story · Guide<br/>Plotly geo bundle, guide.json"]
+    end
+
+    LOCAL["serve.py<br/>localhost:8000"]
+    VERCEL["Vercel<br/>static hosting (configured)"]
+
+    TESTS["tests/test_core.py"]
+    CI["GitHub Actions<br/>tests · notebook · data check"]
+
+    BIS & WB & ECB & GRP --> FETCH --> RAW & META
+    RAW & META --> CORE
+    CORE --> NB --> PROC
+    CORE --> BUILD --> JSON --> UI
+    UI --> LOCAL
+    UI -.-> VERCEL
+    TESTS -. checks .-> CORE
+    CI -. runs .-> TESTS
+    CI -. runs .-> NB
+    CI -. rebuilds and compares .-> JSON
+```
 
 ## Data
 
@@ -155,7 +207,7 @@ python product/build_site.py                                                    
 pytest -q                                                                        # unit tests
 ```
 
-The site is static and works offline. Plotly, the world map and the fonts ship with it (`product/vendor_assets.py` refreshes them). Open it through `serve.py`, not by double-clicking `index.html`, because browsers block data loading from `file://`. [`vercel.json`](vercel.json) is set up to publish `product/site` as a static site. GitHub Actions runs the tests, executes the notebook and checks that the dashboard data match `data/raw`.
+The site is static and works offline. Plotly, the world map and the fonts ship with it (`product/vendor_assets.py` refreshes them). Open it through `serve.py`, not by double-clicking `index.html`, because browsers block data loading from `file://`. [`vercel.json`](vercel.json) is set up to publish `product/site` as a static site. GitHub Actions runs the tests, executes the notebook and rebuilds the dashboard data to check it still matches `data/raw` (`product/check_site_data.py`).
 
 ## Project structure
 
@@ -171,6 +223,7 @@ BIS-dta-story/
 ├── tests/test_core.py           # synthetic series with known answers
 ├── product/
 │   ├── build_site.py            # analysis -> dashboard data
+│   ├── check_site_data.py       # rebuilds the data and compares it with the committed copy
 │   ├── serve.py                 # local server
 │   ├── DESIGN.md                # design system
 │   └── site/                    # the dashboard

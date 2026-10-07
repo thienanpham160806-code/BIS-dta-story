@@ -25,8 +25,5 @@ jobs:
       - name: Notebook runs end to end
         run: jupyter nbconvert --to notebook --execute --output-dir /tmp --output executed notebooks/01_analysis.ipynb
 
-      - name: Site data rebuilds from data/raw and matches the committed file
-        run: |
-          python product/build_site.py
-          git diff --exit-code -- product/site/data.json product/site/data-series.json || {
-            echo "::error::product/site data is out of date: run python product/build_site.py and commit"; exit 1; }
+      - name: Site data matches data/raw
+        run: python product/check_site_data.py

@@ -86,7 +86,7 @@ def records(df: pd.DataFrame) -> list:
     return rows
 
 
-def main() -> None:
+def main(out: Path = SITE) -> None:
     R = core.run_all(ROOT / "data")
     T = R.tables
     cty = T["countries"]
@@ -171,8 +171,9 @@ def main() -> None:
     # the page fetches after first paint together with the chart library.
     later = {k: payload["series"].pop(k) for k in ("dsr", "credit", "policy", "npl")}
     dump = lambda obj: json.dumps(obj, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
-    (SITE / "data.json").write_text(dump(payload), encoding="utf-8")
-    (SITE / "data-series.json").write_text(dump({"series": later}), encoding="utf-8")
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "data.json").write_text(dump(payload), encoding="utf-8")
+    (out / "data-series.json").write_text(dump({"series": later}), encoding="utf-8")
 
     vendor = SITE / "vendor"
     vendor.mkdir(exist_ok=True)
@@ -181,7 +182,7 @@ def main() -> None:
         import requests
         topo.write_bytes(requests.get(TOPOJSON_URL, timeout=60).content)
 
-    sizes = {f: (SITE / f).stat().st_size / 1024 for f in ("data.json", "data-series.json")}
+    sizes = {f: (out / f).stat().st_size / 1024 for f in ("data.json", "data-series.json")}
     n_series = sum(len(v) for v in payload["series"].values()) + sum(len(v) for v in later.values())
     print(f"data.json {sizes['data.json']:,.0f} KB + data-series.json {sizes['data-series.json']:,.0f} KB "
           f"= {sum(sizes.values()):,.0f} KB  ({len(countries)} economies, {n_series} series)")
