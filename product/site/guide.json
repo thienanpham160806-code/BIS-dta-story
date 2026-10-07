@@ -1,0 +1,289 @@
+{
+  "_note": "Nội dung hướng dẫn của dashboard. Sửa/dịch tại đây, không cần đụng tới JS. Chuỗi {tên} được thay bằng số liệu thật lúc chạy (xem app.js: fillTokens). Trong 'state', giá trị bắt đầu bằng @ là danh sách nước tính từ dữ liệu.",
+  "tour": [
+    {
+      "target": "#country-picker-btn",
+      "title": "1 · Chọn nền kinh tế",
+      "body": "Bấm để tìm và chọn nước. Có nút chọn nhanh Châu Á, Khu vực euro, Advanced, Emerging. Mỗi nước giữ một màu cố định ở mọi biểu đồ."
+    },
+    {
+      "target": "#year-range",
+      "title": "2 · Chọn khoảng năm",
+      "body": "Kéo hai đầu thanh trượt (hoặc dùng phím mũi tên). Năm cuối cũng là kỳ được tô màu trên bản đồ."
+    },
+    {
+      "target": "#mode-toggle",
+      "title": "3 · Mức DSR hay độ lệch?",
+      "body": "Mặc định là độ lệch so với trung bình 20 năm của chính nước đó — cách so sánh giữa các nước mà BIS khuyến nghị. Mức DSR tuyệt đối chỉ nên đọc trong từng nước."
+    },
+    {
+      "target": "#card-map",
+      "title": "4 · Bản đồ thế giới",
+      "body": "Đỏ = gánh nặng trả nợ cao hơn mức bình thường của chính nước đó; xanh = thấp hơn; xám = không có số liệu. Rê chuột để xem số."
+    },
+    {
+      "target": "#share-btn",
+      "title": "5 · Chia sẻ đúng góc nhìn này",
+      "body": "Toàn bộ bộ lọc nằm trên địa chỉ trang. Bấm để sao chép link — người nhận sẽ thấy đúng những gì bạn đang thấy."
+    }
+  ],
+  "quickstart": [
+    {
+      "id": "asia4",
+      "title": "So sánh 4 nước châu Á gốc",
+      "desc": "Hàn Quốc, Thái Lan, Malaysia, Hong Kong — từ 2016, độ lệch so với mốc 20 năm.",
+      "state": {
+        "c": [
+          "KR",
+          "TH",
+          "MY",
+          "HK"
+        ],
+        "from": 2016,
+        "to": "@latest",
+        "b": "P",
+        "v": "gap"
+      }
+    },
+    {
+      "id": "euro",
+      "title": "Khu vực euro sau khi ECB tăng lãi suất",
+      "desc": "Các nước thành viên có DSR, từ 2021 — tất cả dùng chung lãi suất ECB.",
+      "state": {
+        "c": "@euro_dsr",
+        "from": 2021,
+        "to": "@latest",
+        "b": "P",
+        "v": "gap"
+      }
+    },
+    {
+      "id": "notrecovered",
+      "title": "Nước nào chưa hồi phục?",
+      "desc": "Các nền kinh tế có DSR quý mới nhất vẫn cao hơn mốc 20 năm nhiều nhất.",
+      "state": {
+        "c": "@above_bench_top6",
+        "from": 2016,
+        "to": "@latest",
+        "b": "P",
+        "v": "gap"
+      }
+    }
+  ],
+  "charts": {
+    "dsr": {
+      "title": "Gánh nặng trả nợ (DSR) theo thời gian",
+      "shows": "Phần thu nhập của khu vực vay nợ phải dành để trả gốc và lãi mỗi quý, cho từng nước đang chọn. Ở chế độ mặc định, mỗi đường là độ lệch so với trung bình 20 năm của chính nước đó.",
+      "how": "Đường nằm trên 0 nghĩa là gánh nặng đang nặng hơn mức bình thường của chính nước đó. Đường chấm dọc là tháng ngân hàng trung ương nước đó bắt đầu tăng lãi suất. Khoảng trống trên đường là quý không có số — không được nối hay nội suy.",
+      "dont": [
+        "Đừng so mức DSR tuyệt đối giữa hai nước (ví dụ 20% của nước này với 15% của nước kia): cách tính thu nhập và kỳ hạn vay khác nhau. Hãy so độ lệch.",
+        "Đừng đọc nhóm Hộ gia đình (H) hay Doanh nghiệp (N) như thể có cho mọi nước — BIS chỉ công bố tách nhóm cho {n_hn} nền kinh tế."
+      ]
+    },
+    "credit": {
+      "title": "Tín dụng / GDP",
+      "shows": "Tổng dư nợ của nhóm người vay đang chọn, tính bằng % GDP (BIS, mọi bên cho vay, giá thị trường, đã điều chỉnh gãy chuỗi).",
+      "how": "Đường đi lên nghĩa là nợ tăng nhanh hơn quy mô nền kinh tế. Đây là quy mô nợ, không phải chi phí trả nợ.",
+      "dont": [
+        "Tín dụng/GDP giảm không có nghĩa là gánh nặng trả nợ giảm: nếu lãi suất tăng, DSR vẫn có thể tăng trong khi dư nợ giảm.",
+        "Biểu đồ này luôn hiển thị mức (% GDP); nút chuyển mức/độ lệch chỉ áp dụng cho DSR và bản đồ."
+      ]
+    },
+    "policy": {
+      "title": "Lãi suất chính sách",
+      "shows": "Lãi suất điều hành cuối mỗi tháng. Các nước khu vực euro hiển thị lãi suất ECB kể từ năm gia nhập euro (nên được gộp thành một đường).",
+      "how": "Tìm điểm đáy rồi tháng đầu tiên lãi suất nhích lên: đó là mốc 'bắt đầu tăng' mà mục độ trễ dùng. Ghi chú bên dưới biểu đồ cho biết nước nào neo tỷ giá.",
+      "dont": [
+        "Hong Kong neo tỷ giá theo USD nên lãi suất gần như sao chép Fed — không phải lựa chọn chính sách độc lập.",
+        "Singapore điều hành bằng tỷ giá, không có chuỗi lãi suất chính sách: thiếu đường không phải là lỗi."
+      ]
+    },
+    "npl": {
+      "title": "Nợ xấu (NPL)",
+      "shows": "Tỷ lệ nợ xấu trên tổng dư nợ ngân hàng, số năm của World Bank.",
+      "how": "Dùng để kiểm tra chéo: gánh nặng trả nợ tăng có biến thành vỡ nợ thật không. Điểm cuối của mỗi đường là năm gần nhất World Bank đã công bố.",
+      "dont": [
+        "Tương quan giữa NPL và DSR chỉ mang tính mô tả: mỗi nước chỉ có từ {npl_n_min} đến {npl_n_max} điểm năm.",
+        "Năm bị thiếu là chưa công bố, không phải bằng 0."
+      ]
+    },
+    "lag": {
+      "title": "Độ trễ: từ lúc tăng lãi suất đến đỉnh DSR",
+      "shows": "Mỗi chấm là một nền kinh tế: số quý từ quý ngân hàng trung ương bắt đầu tăng lãi suất (chu kỳ 2021–2023) đến quý DSR đạt đỉnh. Vùng tô là khoảng tứ phân vị toàn cầu, vạch đứt là trung vị.",
+      "how": "Nước đang chọn được tô màu và có nhãn. Chấm rỗng là chuỗi bị cắt cụt. Bảng bên dưới ghi trạng thái từng nước: đo được, cắt cụt, không tăng, hoặc không có chu kỳ tăng.",
+      "dont": [
+        "Độ chính xác là ±1 quý: lãi suất là số tháng, DSR là số quý.",
+        "Chuỗi bị cắt cụt nghĩa là đỉnh thật có thể còn ở phía sau — con số chỉ là cận dưới.",
+        "Biểu đồ này không đổi theo khoảng năm: nó luôn đo chu kỳ tăng 2021–2023."
+      ]
+    },
+    "scatter": {
+      "title": "Liên quốc gia: tăng lãi suất bao nhiêu, DSR tăng bao nhiêu",
+      "shows": "Mỗi chấm là một nền kinh tế có chu kỳ tăng: trục ngang là mức tăng lãi suất từ đáy đến đỉnh (thang log), trục dọc là mức tăng DSR (hoặc độ trễ).",
+      "how": "Tiêu đề phụ ghi hệ số tương quan, khoảng tin cậy 95% và số nước n. Hệ số 'bỏ chu kỳ > {large_hike} pp' cho biết kết luận có phụ thuộc vào vài nước lạm phát cao hay không.",
+      "dont": [
+        "Tương quan không phải nhân quả.",
+        "Với n = {cross_n} nước, một hai điểm ngoại lai có thể tạo ra hệ số rất cao — luôn xem cả hệ số Spearman và hệ số khi bỏ ngoại lai."
+      ]
+    },
+    "map": {
+      "title": "Bản đồ độ lệch DSR",
+      "shows": "Độ lệch DSR so với trung bình 20 năm của chính từng nước, tại quý cuối của khoảng năm đang chọn.",
+      "how": "Đỏ đậm = cao hơn nhiều so với mức bình thường; xanh = thấp hơn; xám = không có số liệu DSR. Nước đang chọn có viền đậm. Hong Kong được vẽ bằng chấm tròn vì quá nhỏ trên bản đồ. Bấm vào một nước (hoặc một dòng trong bảng số liệu) để mở hồ sơ của nước đó: độ lệch, mức DSR, độ trễ, chu kỳ lãi suất, tín dụng/GDP, nợ xấu, và nút thêm nước vào so sánh.",
+      "dont": [
+        "Màu đậm không có nghĩa là 'DSR cao nhất thế giới', mà là 'xa mức bình thường của chính nước đó nhất'.",
+        "Diện tích lớn (Nga, Brazil) dễ gây ấn tượng mạnh hơn nước nhỏ có cùng độ lệch — đọc số trong tooltip hoặc bảng."
+      ]
+    },
+    "coverage": {
+      "title": "Độ phủ dữ liệu và kỳ mới nhất",
+      "shows": "Với mỗi nước đang chọn: kỳ mới nhất có số của từng bộ dữ liệu và tỷ lệ quan sát bị thiếu trong khoảng năm đang xem.",
+      "how": "Ô '—' nghĩa là nguồn không công bố chuỗi đó cho nước này. Tỷ lệ thiếu tính trên số kỳ đáng lẽ phải có.",
+      "dont": [
+        "Không có giá trị nào được điền hay nội suy: thiếu là thiếu."
+      ]
+    }
+  },
+  "glossary": [
+    {
+      "id": "dsr",
+      "term": "DSR (tỷ lệ trả nợ)",
+      "short": "Phần trăm thu nhập phải dành để trả gốc + lãi mỗi kỳ.",
+      "long": "Debt service ratio của BIS: tổng tiền trả lãi và trả gốc chia cho thu nhập của nhóm người vay. Đo gánh nặng dòng tiền, không phải quy mô nợ.",
+      "example": "Lương 10 triệu/tháng, trả góp nhà và xe hết 3 triệu → DSR 30%."
+    },
+    {
+      "id": "pnfs",
+      "term": "PNFS",
+      "short": "Khu vực tư nhân phi tài chính = hộ gia đình + doanh nghiệp phi tài chính.",
+      "long": "Private non-financial sector. Không gồm ngân hàng và nhà nước. Đây là chuỗi DSR duy nhất có cho cả {n_dsr} nền kinh tế, nên là kết quả chính của dự án.",
+      "example": "Gia đình vay mua nhà và công ty may vay mua máy đều thuộc PNFS; ngân hàng cho họ vay thì không."
+    },
+    {
+      "id": "hnp",
+      "term": "H / N / P",
+      "short": "Mã nhóm người vay của BIS: H hộ gia đình, N doanh nghiệp, P toàn khu vực tư nhân.",
+      "long": "H = Households & NPISHs (hộ gia đình và tổ chức phi lợi nhuận phục vụ hộ gia đình); N = Non-financial corporations; P = H + N. BIS chỉ công bố DSR tách H/N cho {n_hn} nền kinh tế.",
+      "example": "Giống hoá đơn điện của cả toà nhà (P) so với hoá đơn từng căn hộ (H) và từng cửa hàng tầng trệt (N)."
+    },
+    {
+      "id": "creditgdp",
+      "term": "Tín dụng / GDP",
+      "short": "Tổng dư nợ so với quy mô nền kinh tế, tính bằng %.",
+      "long": "Đo quy mô đòn bẩy (nợ lớn cỡ nào), không đo chi phí phục vụ nợ. Nợ có thể giảm trong khi DSR tăng nếu lãi suất tăng.",
+      "example": "Nợ 500 triệu khi thu nhập năm 250 triệu → 200%. Nếu lãi vay tăng, khoản trả hàng tháng tăng dù nợ không đổi."
+    },
+    {
+      "id": "pp",
+      "term": "Điểm phần trăm (pp)",
+      "short": "Chênh lệch giữa hai tỷ lệ phần trăm, tính bằng phép trừ.",
+      "long": "DSR từ 15% lên 16% là tăng 1 điểm phần trăm (1 pp), không phải tăng 1%. Nếu tính tương đối thì đó là tăng 6,7%.",
+      "example": "Lãi suất tiết kiệm từ 5% lên 6% là +1 pp, dù số tiền lãi nhận được tăng 20%."
+    },
+    {
+      "id": "bench",
+      "term": "Mốc nền 20 năm",
+      "short": "Trung bình DSR 80 quý gần nhất của chính nước đó.",
+      "long": "Dùng làm 'mức bình thường' của từng nước. Độ lệch = DSR hiện tại − mốc nền. BIS khuyến nghị so độ lệch này giữa các nước thay vì so mức tuyệt đối.",
+      "example": "Như so cân nặng của bạn với cân nặng thường ngày của chính bạn, thay vì so với người khác cao hơn 20 cm."
+    },
+    {
+      "id": "lag",
+      "term": "Độ trễ truyền dẫn",
+      "short": "Thời gian từ lúc ngân hàng trung ương tăng lãi suất đến khi gánh nặng trả nợ đạt đỉnh.",
+      "long": "Dự án đo bằng số quý, từ quý của lần tăng đầu tiên sau đáy 2021–2023 đến quý DSR cao nhất sau đó. Độ chính xác ±1 quý.",
+      "example": "Như vặn nước nóng trong nhà tắm: phải đợi một lúc nước trong ống mới nóng lên, và nóng nhất là vài phút sau."
+    },
+    {
+      "id": "liftoff",
+      "term": "Mốc bắt đầu tăng (lift-off)",
+      "short": "Tháng đầu tiên lãi suất nhích lên khỏi đáy trong giai đoạn 2021–2023.",
+      "long": "Xác định bằng thuật toán cho từng nước: tìm mức thấp nhất trong cửa sổ, rồi tháng đầu tiên sau đó lãi suất cao hơn mức này. Nước không có tháng như vậy được đánh dấu 'không có chu kỳ tăng'.",
+      "example": "Như ngày đầu tiên giá xăng tăng trở lại sau một thời gian chạm đáy."
+    },
+    {
+      "id": "censored",
+      "term": "Bị cắt cụt (censoring)",
+      "short": "Đỉnh rơi vào quan sát cuối cùng, nên đỉnh thật có thể còn ở phía sau.",
+      "long": "Khi DSR vẫn đang lên ở quý dữ liệu mới nhất, ta chỉ biết độ trễ ít nhất bằng con số đo được. Các chuỗi này được vẽ chấm rỗng và không tính vào trung vị chính.",
+      "example": "Đo chiều cao đứa trẻ 15 tuổi rồi kết luận 'đã cao nhất' là sai — em có thể còn cao thêm."
+    },
+    {
+      "id": "npl",
+      "term": "NPL (nợ xấu)",
+      "short": "Tỷ lệ khoản vay ngân hàng quá hạn lâu hoặc khó đòi trên tổng dư nợ.",
+      "long": "World Bank, chỉ tiêu FB.AST.NPER.ZS, số năm, toàn hệ thống ngân hàng (không tách hộ gia đình/doanh nghiệp). Thường phản ứng chậm hơn DSR.",
+      "example": "Trong 100 đồng cho vay có 2 đồng người vay đã ngừng trả → NPL 2%."
+    }
+  ],
+  "faq": [
+    {
+      "q": "Vì sao mặc định là 'độ lệch' chứ không phải mức DSR?",
+      "a": "Mức DSR phụ thuộc cách mỗi nước đo thu nhập, kỳ hạn vay phổ biến và cơ cấu cho vay, nên 20% ở nước này không tương đương 20% ở nước kia. Độ lệch so với mức bình thường của chính nước đó thì so được — đây là khuyến nghị của BIS."
+    },
+    {
+      "q": "Vì sao các nước khu vực euro có cùng một đường lãi suất?",
+      "a": "Từ khi gia nhập euro, các nước không còn lãi suất chính sách riêng; ECB đặt một lãi suất chung. Năm gia nhập của từng nước lấy từ trang chính thức của ECB."
+    },
+    {
+      "q": "Vì sao Nhật Bản và Trung Quốc không có độ trễ?",
+      "a": "Trong 2021–2023, lãi suất của hai nước này không tăng sau đáy (Nhật giữ nguyên, Trung Quốc chỉ giảm), nên thuật toán đánh dấu 'không có chu kỳ tăng' và loại khỏi phân tích độ trễ."
+    },
+    {
+      "q": "Vì sao một số nước 'không tăng'?",
+      "a": "Ở các nước này, DSR không vượt mức trước khi tăng lãi suất, hoặc cao nhất đúng ngay quý bắt đầu tăng rồi chỉ giảm — không có đỉnh truyền dẫn để đo."
+    },
+    {
+      "q": "Thanh trượt năm có ảnh hưởng tới độ trễ không?",
+      "a": "Không. Độ trễ luôn đo cho chu kỳ tăng 2021–2023 trên toàn bộ dữ liệu. Khoảng năm chỉ đổi phần hiển thị của các biểu đồ theo thời gian, quý được tô trên bản đồ và các thẻ số liệu."
+    },
+    {
+      "q": "Có dự báo cho các năm sau không?",
+      "a": "Không. Mọi biểu đồ dừng ở kỳ dữ liệu mới nhất; dự án không ngoại suy."
+    },
+    {
+      "q": "Làm sao xem nhanh mọi số liệu của một nước?",
+      "a": "Bấm vào nước đó trên bản đồ, trên biểu đồ độ trễ, biểu đồ liên quốc gia hoặc một đường trên biểu đồ DSR. Hồ sơ mở ra ở cạnh phải (trên điện thoại là từ dưới lên), có nút thêm nước vào so sánh hoặc chỉ xem riêng nước đó."
+    }
+  ],
+  "data": {
+    "intro": "Mọi số trên trang được tính lại từ dữ liệu gốc mỗi lần chạy `python product/build_site.py`, bằng cùng một module phân tích với notebook. Không có số nào gõ tay.",
+    "sources": [
+      {
+        "name": "BIS — Debt service ratios",
+        "code": "WS_DSR 1.0",
+        "freq": "Quý",
+        "unit": "% thu nhập",
+        "last": "{dsr_last}"
+      },
+      {
+        "name": "BIS — Credit to the non-financial sector",
+        "code": "WS_TC 2.0",
+        "freq": "Quý",
+        "unit": "% GDP",
+        "last": "{credit_last}"
+      },
+      {
+        "name": "BIS — Central bank policy rates",
+        "code": "WS_CBPOL 1.0",
+        "freq": "Tháng",
+        "unit": "% / năm",
+        "last": "{policy_last}"
+      },
+      {
+        "name": "World Bank — Bank NPL to gross loans",
+        "code": "FB.AST.NPER.ZS",
+        "freq": "Năm",
+        "unit": "% dư nợ",
+        "last": "{npl_last}"
+      }
+    ],
+    "updated": "Dữ liệu tải lần cuối ngày {retrieved}. BIS cập nhật DSR và tín dụng theo quý, lãi suất chính sách theo tháng; World Bank cập nhật NPL theo năm và một số nước công bố chậm hơn (xem cột 'kỳ mới nhất' trong bảng độ phủ).",
+    "howto": "Cập nhật: chạy `python scripts/fetch_data.py --refresh` rồi `python product/build_site.py`."
+  },
+  "regime_notes": {
+    "HK": "Neo tỷ giá theo USD (cơ chế Linked Exchange Rate). Lãi suất cơ bản của HKMA được đặt theo công thức từ lãi suất Mỹ, nên Hong Kong nhập khẩu nguyên chu kỳ của Fed.",
+    "SG": "MAS điều hành chính sách tiền tệ bằng tỷ giá (S$NEER), không bằng lãi suất; BIS không có chuỗi lãi suất chính sách cho Singapore.",
+    "DK": "Chính sách tỷ giá cố định với đồng euro; lãi suất của Danmarks Nationalbank được đặt để giữ ổn định đồng krone nên gần như đi theo ECB."
+  }
+}

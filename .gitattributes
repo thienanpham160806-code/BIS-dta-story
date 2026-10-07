@@ -1,0 +1,6 @@
+# Vendored, minified or binary files: never touch line endings.
+product/site/vendor/* -text
+*.woff2 binary
+*.png binary
+*.gif binary
+*.gz binary

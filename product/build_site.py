@@ -1,245 +1,206 @@
 # -*- coding: utf-8 -*-
 """
-Build the localhost dashboard in product/site/.
+Build the dashboard data from data/raw, using the same analysis module as the notebook.
 
-Reads data/raw, recomputes every derived metric the story uses (same logic as
-notebooks/01_analysis.ipynb), and emits:
+    python product/build_site.py
 
-    product/site/data.json            - all series + all analysis tables
-    product/site/vendor/plotly.min.js - vendored from the installed plotly package
-                                        so the site runs fully offline
+Emits
+    product/site/data.json            analysis tables + the DSR-gap series (first screen)
+    product/site/data-series.json     DSR level, credit/GDP, policy-rate and NPL series
+    product/site/vendor/world_110m.json  (only if missing) map topology for offline use
 
-Run:  python product/build_site.py
-Then: python product/serve.py
+Nothing here re-implements analysis: all numbers come from analysis.core.run_all(),
+the function notebooks/01_analysis.ipynb also calls. The site inserts every number
+it displays from data.json at run time, so the page cannot drift from data/raw.
+
+Series are stored compactly: {"s": first period, "v": [values]} from the first to the
+last valid observation of each series; gaps inside stay null (never filled).
 """
 
+import datetime as dt
 import json
+import math
+import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
-RAW = ROOT / "data" / "raw"
+sys.path.insert(0, str(ROOT))
+from analysis import core  # noqa: E402
+
 SITE = Path(__file__).resolve().parent / "site"
-(SITE / "vendor").mkdir(parents=True, exist_ok=True)
-
-ORDER = ["KR", "TH", "MY", "HK"]
-CTY = {"KR": "Hàn Quốc", "TH": "Thái Lan", "MY": "Malaysia",
-       "HK": "Hong Kong SAR", "US": "Mỹ (Fed)"}
-# Categorical slots assigned in fixed order; colour follows the country, never its rank.
-COLOR = {"KR": "#2a78d6", "TH": "#eb6834", "MY": "#1baf7a", "HK": "#eda100", "US": "#52514e"}
-COLOR_DARK = {"KR": "#3987e5", "TH": "#d95926", "MY": "#199e70", "HK": "#c98500", "US": "#c3c2b7"}
-BORROWER = {"H": "Hộ gia đình", "N": "Doanh nghiệp", "P": "Tư nhân phi tài chính (PNFS)"}
+FOCUS = ["KR", "TH", "MY", "HK"]
+TOPOJSON_URL = "https://cdn.plot.ly/un/world_110m.json"
 
 
-def q2d(s):
-    return pd.PeriodIndex(s.str.replace("-Q", "Q", regex=False), freq="Q").to_timestamp(how="end").normalize()
+def num(x, d=3):
+    if x is None:
+        return None
+    try:
+        f = float(x)
+    except (TypeError, ValueError):
+        return None
+    return None if math.isnan(f) else round(f, d)
 
 
-def m2d(s):
-    return pd.PeriodIndex(s, freq="M").to_timestamp(how="end").normalize()
+def ts(x):
+    return None if x is None or pd.isna(x) else pd.Timestamp(x).strftime("%Y-%m-%d")
 
 
-# ----------------------------------------------------------------- load & pivot
-dsr_raw = pd.read_csv(RAW / "dsr.csv")
-dsr_raw["date"] = q2d(dsr_raw["TIME_PERIOD"])
-dsr_raw["series"] = dsr_raw["BORROWERS_CTY"] + "_" + dsr_raw["DSR_BORROWERS"]
-DSR = dsr_raw.pivot(index="date", columns="series", values="OBS_VALUE").sort_index()
-
-lr = pd.read_csv(RAW / "dsr_longrun.csv")
-lr["date"] = q2d(lr["TIME_PERIOD"])
-lr["series"] = lr["BORROWERS_CTY"] + "_" + lr["DSR_BORROWERS"]
-DSR_LONG = lr.pivot(index="date", columns="series", values="OBS_VALUE").sort_index()
-
-cr = pd.read_csv(RAW / "credit_gdp.csv")
-cr["date"] = q2d(cr["TIME_PERIOD"])
-cr["series"] = cr["BORROWERS_CTY"] + "_" + cr["TC_BORROWERS"]
-CREDIT = cr.pivot(index="date", columns="series", values="OBS_VALUE").sort_index()
-
-po = pd.read_csv(RAW / "policy_rate.csv")
-po["date"] = m2d(po["TIME_PERIOD"])
-POLICY = po.pivot(index="date", columns="REF_AREA", values="OBS_VALUE").sort_index()
-POLICY_Q = POLICY.resample("QE").last()
-
-ISO = {"KOR": "KR", "THA": "TH", "MYS": "MY", "HKG": "HK"}
-npl_raw = pd.read_csv(RAW / "npl_ratio_worldbank.csv")
-npl_raw["cty"] = npl_raw["countryiso3code"].map(ISO)
-NPL = npl_raw.pivot(index="date", columns="cty", values="NPL_ratio").sort_index()
-NPL.index = pd.to_datetime(NPL.index.astype(str) + "-12-31")
-NPL = NPL[ORDER]
-
-# 20-year benchmark: BIS recommends comparing DSR to a country's own history,
-# never to another country's level.
-BENCH = DSR_LONG.loc["2006-01-01":"2025-12-31"].mean()
-DSR_GAP = DSR - BENCH
-DSR_A = DSR[DSR.index.month == 12]
-
-HAS_BREAKDOWN = [c for c in ORDER if {f"{c}_H", f"{c}_N"} <= set(DSR.columns)]
+def compact(s: pd.Series, d: int) -> dict | None:
+    valid = s.dropna()
+    if valid.empty:
+        return None
+    win = s.loc[valid.index.min():valid.index.max()]
+    return {"s": win.index[0].strftime("%Y-%m-%d"), "v": [num(v, d) for v in win]}
 
 
-def jsonify(df):
-    """Wide frame -> {dates: [...], cols: {name: [values, None where missing]}}."""
-    return {
-        "dates": [d.strftime("%Y-%m-%d") for d in df.index],
-        "cols": {c: [None if pd.isna(v) else round(float(v), 4) for v in df[c]]
-                 for c in df.columns},
-    }
+def frame(df: pd.DataFrame, d: int) -> dict:
+    out = {}
+    for c in df.columns:
+        x = compact(df[c], d)
+        if x:
+            out[c] = x
+    return out
 
 
-# ----------------------------------------------------------------- policy cycle
-def find_cycle(c):
-    s = POLICY[c].loc["2021-01-31":"2024-12-31"]
-    tv = s.loc[:"2022-12-31"].min()
-    t = s.loc[:"2022-12-31"].idxmin()
-    after = s.loc[t:]
-    start = after[after > tv + 1e-9].index.min()
-    return dict(trough=float(tv), start=start, peak=s.idxmax(), peak_val=float(s.max()))
+def rounded(obj, d: int = 6):
+    """Round every float in a JSON tree: 16-digit floats differ across platforms in
+    the last digit, and no published figure needs more than a few decimals."""
+    if isinstance(obj, float):
+        return None if math.isnan(obj) else round(obj, d)
+    if isinstance(obj, list):
+        return [rounded(x, d) for x in obj]
+    if isinstance(obj, dict):
+        return {k: rounded(v, d) for k, v in obj.items()}
+    return obj
 
 
-CYCLE = {c: find_cycle(c) for c in ORDER + ["US"]}
+def records(df: pd.DataFrame) -> list:
+    rows = []
+    for r in df.to_dict("records"):
+        rec = {}
+        for k, v in r.items():
+            if isinstance(v, (pd.Timestamp, dt.date)) or (hasattr(v, "year") and not isinstance(v, (int, float))):
+                rec[k] = ts(v)
+            elif isinstance(v, (bool, np.bool_)):
+                rec[k] = bool(v)
+            elif v is None or isinstance(v, str):
+                rec[k] = v
+            elif isinstance(v, (list, tuple)):
+                rec[k] = list(v)
+            else:
+                f = num(v, 4)
+                rec[k] = f
+        rows.append(rec)
+    return rows
 
-cycle_rows = [{
-    "cty": c, "name": CTY[c],
-    "trough": CYCLE[c]["trough"],
-    "start": CYCLE[c]["start"].strftime("%m/%Y"),
-    "peak": CYCLE[c]["peak_val"],
-    "peak_when": CYCLE[c]["peak"].strftime("%m/%Y"),
-    "total_hike": round(CYCLE[c]["peak_val"] - CYCLE[c]["trough"], 2),
-    "now": float(POLICY[c].iloc[-1]),
-    "cut": round(float(POLICY[c].iloc[-1]) - CYCLE[c]["peak_val"], 2),
-} for c in ORDER + ["US"]]
 
-# ----------------------------------------------------------------- lag test
-PAIRS = [("KR", "KR_P"), ("KR", "KR_H"), ("KR", "KR_N"),
-         ("TH", "TH_P"), ("MY", "MY_P"), ("HK", "HK_P")]
-LABEL = {"KR_P": "Hàn Quốc — PNFS", "KR_H": "Hàn Quốc — Hộ gia đình",
-         "KR_N": "Hàn Quốc — Doanh nghiệp", "TH_P": "Thái Lan — PNFS",
-         "MY_P": "Malaysia — PNFS", "HK_P": "Hong Kong — PNFS"}
+def main(out: Path = SITE) -> None:
+    R = core.run_all(ROOT / "data")
+    T = R.tables
+    cty = T["countries"]
+    summary = json.loads((ROOT / "data" / "meta" / "fetch_summary.json").read_text(encoding="utf-8"))
 
-lag_rows = []
-for cty, ser in PAIRS:
-    start = CYCLE[cty]["start"]
-    post = DSR[ser].loc[start:]
-    pk, pv = post.idxmax(), float(post.max())
-    lag = (pk.year - start.year) * 12 + (pk.month - start.month)
-    base = float(DSR[ser].asof(start))
-    lag_rows.append({
-        "cty": cty, "series": ser, "label": LABEL[ser],
-        "start": start.strftime("%m/%Y"), "base": base,
-        "peak": pv, "peak_q": f"{pk.year}-Q{pk.quarter}",
-        "lag_months": int(lag), "rise": round(pv - base, 1),
-        "fits": bool(12 <= lag <= 18),
-    })
+    countries = []
+    for r in cty.itertuples():
+        countries.append({
+            "iso2": r.iso2, "iso3": r.iso3, "en": r.name_en, "vi": r.name_vi, "region": r.region,
+            "group": r.group, "aggregate": bool(r.is_aggregate), "euro": bool(r.euro_member),
+            "euro_since": int(r.euro_since) if r.euro_member else None,
+            "policy_code": r.policy_code, "policy_note": r.policy_note, "policy_note_src": r.policy_note_source,
+            "has": {b: bool(getattr(r, f"has_dsr_{b}")) for b in "HNP"},
+            "first": {k: getattr(r, f"{k}_first") or None for k in ("dsr", "credit", "policy", "npl")},
+            "last": {k: getattr(r, f"{k}_last") or None for k in ("dsr", "credit", "policy", "npl")},
+        })
 
-LAGS = list(range(9))
-corr_rows = []
-for cty, ser in PAIRS:
-    dp, dd = POLICY_Q[cty].diff(), DSR[ser].diff()
-    vals = [round(float(dp.shift(L).corr(dd)), 3) for L in LAGS]
-    best = int(np.argmax(vals))
-    corr_rows.append({"cty": cty, "series": ser, "label": LABEL[ser],
-                      "values": vals, "best": best, "best_r": vals[best]})
+    cov = pd.read_csv(ROOT / "data" / "meta" / "coverage.csv")
+    cov = cov[cov.period.isin(["1999-latest", "2020-latest"])]
+    coverage = {}
+    for r in cov.itertuples():
+        coverage.setdefault(r.iso2, {}).setdefault(r.series, {})[r.period] = r.pct_missing
 
-# ----------------------------------------------------------------- surprise test
-BASE_Q = pd.Timestamp("2021-12-31")
-surprise_rows = []
-for c in ORDER:
-    ser = f"{c}_P"
-    pk = DSR[ser].loc["2022-03-31":].idxmax()
-    d0, d1 = float(DSR[ser].loc[BASE_Q]), float(DSR[ser].loc[pk])
-    c0, c1 = float(CREDIT[ser].loc[BASE_Q]), float(CREDIT[ser].loc[pk])
-    surprise_rows.append({
-        "cty": c, "name": CTY[c], "peak_q": f"{pk.year}-Q{pk.quarter}",
-        "dsr0": d0, "dsr1": d1, "d_dsr": round(d1 - d0, 1),
-        "cr0": c0, "cr1": c1, "d_credit": round(c1 - c0, 1),
-        "fits": bool(d1 - d0 > 0 and c1 - c0 < 0),
-    })
+    bench = {k: {"mean": num(v["mean"], 3), "start": core.qlabel(v["start"]) if v["start"] is not None else None,
+                 "end": core.qlabel(v["end"]) if v["end"] is not None else None, "n": int(v["n_obs"])}
+             for k, v in R.bench.iterrows()}
 
-# ----------------------------------------------------------------- NPL cross-check
-cross_rows = []
-for c in ORDER:
-    j = pd.concat([DSR_A[f"{c}_P"].rename("dsr"), NPL[c].rename("npl")], axis=1).dropna()
-    dj = j.diff().dropna()
-    last = NPL[c].last_valid_index()
-    n21, nl = float(NPL[c].loc["2021-12-31"]), float(NPL[c].loc[last])
-    d_npl = round(nl - n21, 2)
-    cross_rows.append({
-        "cty": c, "name": CTY[c], "n": int(len(j)),
-        "corr_level": round(float(j.dsr.corr(j.npl)), 2),
-        "corr_diff": round(float(dj.dsr.corr(dj.npl)), 2),
-        "d_dsr": round(float(DSR[f"{c}_P"].loc["2022-03-31":].max() - DSR[f"{c}_P"].loc[BASE_Q]), 1),
-        "npl21": round(n21, 2), "npl_last": round(nl, 2), "last_year": int(last.year),
-        "d_npl": d_npl,
-        # A +0.03pp move on a 0.23 base is noise; say so rather than let a bare
-        # "yes" imply a transmission the magnitude does not support.
-        "verdict": "KHÔNG" if d_npl <= 0 else ("CÓ" if d_npl >= 0.10 else "không đáng kể"),
-        "missing": [int(y) for y in range(2016, 2026)
-                    if pd.Timestamp(f"{y}-12-31") not in NPL[c].dropna().index],
-    })
+    cycles = {}
+    for c, r in R.cycles.iterrows():
+        cycles[c] = {"has_cycle": bool(r.has_cycle), "trough": num(r.trough, 4), "trough_date": ts(r.trough_date),
+                     "liftoff": ts(r.liftoff), "peak": num(r.peak, 4), "peak_date": ts(r.peak_date),
+                     "hike_pp": num(r.hike_pp, 4), "reason": r.reason, "policy_code": r.policy_code}
 
-# ----------------------------------------------------------------- recovery
-rec_rows = []
-for cty, ser in PAIRS:
-    pk = float(DSR[ser].loc["2022-03-31":].max())
-    last = float(DSR[ser].iloc[-1])
-    b = float(BENCH[ser])
-    excess = pk - b
-    rec_rows.append({
-        "cty": cty, "series": ser, "label": LABEL[ser],
-        "peak": pk, "now": last, "bench": round(b, 2),
-        "from_peak": round(last - pk, 1), "above_bench": round(last - b, 1),
-        # Only meaningful when the cycle actually pushed DSR clear of the benchmark;
-        # Malaysia never did, and "gỡ 0%" would read as "recovered nothing" instead of
-        # "there was nothing to recover".
-        "repaid": round((pk - last) / excess * 100) if excess >= 0.5 else None,
-        "never_exceeded": bool(excess < 0.5),
-    })
-rec_rows.sort(key=lambda r: -r["above_bench"])
+    # Latest value of the deferred series, so first-screen text never waits for them.
+    def latest_of(df, col, d):
+        if col not in df:
+            return None
+        s = df[col].dropna()
+        return {"date": ts(s.index[-1]), "v": num(s.iloc[-1], d)} if len(s) else None
+    latest = {}
+    for c in cty.iso2:
+        rec = {f"credit_{b}": latest_of(T["credit"], f"{c}_{b}", 2) for b in "HNP"}
+        rec.update(policy=latest_of(T["policy"], c, 4), npl=latest_of(T["npl"], c, 3))
+        latest[c] = {k: v for k, v in rec.items() if v}
 
-# ----------------------------------------------------------------- coverage
-coverage = []
-for name, df, freq in [("DSR", DSR, "Quý"), ("Credit/GDP", CREDIT, "Quý"),
-                       ("Policy rate", POLICY, "Tháng"), ("NPL", NPL, "Năm")]:
-    for col in df.columns:
-        coverage.append({"dataset": name, "series": col, "freq": freq,
-                         "n": int(len(df)), "valid": int(df[col].notna().sum()),
-                         "missing_pct": round(float(df[col].isna().mean() * 100), 1)})
+    lags = R.lags.copy()
+    lags = records(lags)
 
-# ----------------------------------------------------------------- emit
-payload = {
-    "meta": {
-        "order": ORDER, "names": CTY, "color": COLOR, "color_dark": COLOR_DARK,
-        "borrower": BORROWER, "has_breakdown": HAS_BREAKDOWN,
-        "window": {"start": "2016-01-01", "end": "2025-12-31"},
-        "bench_window": "2006-Q1 → 2025-Q4",
-        "phases": {
-            "hike": ["2022-03-01", "2023-07-31"],
-            "ease": ["2024-09-01", "2025-12-31"],
-            "risk": ["2026-01-01", "2026-09-30"],
+    payload = {
+        "meta": {
+            "retrieved": summary["retrieved"],
+            "summary": summary,
+            "focus": FOCUS,
+            "cycle_window": list(core.CYCLE_WINDOW),
+            "cycle_peak_end": core.CYCLE_PEAK_END,
+            "bench_quarters": core.BENCH_QUARTERS,
+            "large_hike_pp": core.LARGE_HIKE_PP,
+            "freq": {"dsr": "Q", "gap": "Q", "credit": "Q", "policy": "M", "npl": "A"},
+            "sources": {
+                "dsr": "BIS WS_DSR 1.0", "credit": "BIS WS_TC 2.0 (all lenders, market value, % of GDP, adjusted for breaks)",
+                "policy": "BIS WS_CBPOL 1.0 (end of month; euro members = ECB from adoption year)",
+                "npl": "World Bank FB.AST.NPER.ZS (annual)",
+            },
         },
-        "source": "BIS SDMX v2 (WS_DSR 1.0, WS_TC 2.0, WS_CBPOL 1.0) + World Bank FB.AST.NPER.ZS",
-    },
-    "bench": {k: round(float(v), 2) for k, v in BENCH.items()},
-    "series": {
-        "dsr": jsonify(DSR), "dsr_gap": jsonify(DSR_GAP), "credit": jsonify(CREDIT),
-        "policy": jsonify(POLICY), "npl": jsonify(NPL),
-    },
-    "tables": {
-        "cycle": cycle_rows, "lag": lag_rows, "corr": corr_rows,
-        "surprise": surprise_rows, "cross": cross_rows, "recovery": rec_rows,
+        "countries": countries,
         "coverage": coverage,
-    },
-}
+        "series": {
+            "dsr": frame(T["dsr"], 2), "gap": frame(R.gap, 3), "credit": frame(T["credit"], 2),
+            "policy": frame(T["policy"], 4), "npl": frame(T["npl"], 3),
+        },
+        "bench": bench,
+        "cycles": cycles,
+        "lags": lags,
+        "lag_dist": rounded(json.loads(json.dumps(R.lag_dist, default=lambda o: None))),
+        "cross": rounded(json.loads(json.dumps(R.cross, default=lambda o: None))),
+        "npl_corr": records(R.npl_corr),
+        "recovery": records(R.recovery),
+        "latest": latest,
+    }
+    # Two files: everything the first screen needs (headline, KPIs, map, lag, scatter)
+    # in data.json; the long level/credit/policy/NPL series in data-series.json, which
+    # the page fetches after first paint together with the chart library.
+    later = {k: payload["series"].pop(k) for k in ("dsr", "credit", "policy", "npl")}
+    dump = lambda obj: json.dumps(obj, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "data.json").write_text(dump(payload), encoding="utf-8")
+    (out / "data-series.json").write_text(dump({"series": later}), encoding="utf-8")
 
-(SITE / "data.json").write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    vendor = SITE / "vendor"
+    vendor.mkdir(exist_ok=True)
+    topo = vendor / "world_110m.json"
+    if not topo.exists():
+        import requests
+        topo.write_bytes(requests.get(TOPOJSON_URL, timeout=60).content)
 
-# Vendor plotly.js out of the installed package so the page needs no network.
-import plotly.offline as pyo
+    sizes = {f: (out / f).stat().st_size / 1024 for f in ("data.json", "data-series.json")}
+    n_series = sum(len(v) for v in payload["series"].values()) + sum(len(v) for v in later.values())
+    print(f"data.json {sizes['data.json']:,.0f} KB + data-series.json {sizes['data-series.json']:,.0f} KB "
+          f"= {sum(sizes.values()):,.0f} KB  ({len(countries)} economies, {n_series} series)")
 
-(SITE / "vendor" / "plotly.min.js").write_text(pyo.get_plotlyjs(), encoding="utf-8")
 
-print(f"data.json            {(SITE / 'data.json').stat().st_size / 1024:>7.0f} KB")
-print(f"vendor/plotly.min.js {(SITE / 'vendor' / 'plotly.min.js').stat().st_size / 1024:>7.0f} KB")
-print("series:", {k: len(v["cols"]) for k, v in payload["series"].items()})
-print("tables:", {k: len(v) for k, v in payload["tables"].items()})
+if __name__ == "__main__":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    main()

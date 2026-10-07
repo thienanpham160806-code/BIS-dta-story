@@ -1,254 +1,363 @@
 """
-Fetch raw data for Chu de 1: Do tre chinh sach that chat tien te & ganh nang tra no tu nhan.
+Fetch every raw input for the project, for every economy the sources publish.
 
-Countries : Korea (KR), Thailand (TH), Malaysia (MY), Hong Kong SAR (HK)
-Reference : United States (US) policy rate - the Fed cycle that drives the whole story
-Period    : 2016-01-01 .. 2025-12-31 (analysis window)
-            + one extra long-history DSR file (1999-Q1 ..) used ONLY to compute the
-              20-year benchmark that BIS recommends for cross-country DSR comparison.
+Run   : python scripts/fetch_data.py            (uses the on-disk HTTP cache)
+        python scripts/fetch_data.py --refresh  (ignore the cache, re-download)
 
-Run   : python scripts/fetch_data.py
-Output: data/raw/*.csv (one file per dataset, untouched from source)
+Output
+------
+data/raw/
+    dsr.csv                  BIS WS_DSR 1.0   - debt service ratios, all economies, H/N/P, full history
+    credit_gdp.csv.gz        BIS WS_TC 2.0    - credit to H/N/P, % of GDP, all economies, full history
+    policy_rate.csv.gz       BIS WS_CBPOL 1.0 - central bank policy rates, monthly, full history
+    npl_ratio_worldbank.csv  World Bank FB.AST.NPER.ZS - bank NPL ratio, annual, full history
+    wb_country_meta.csv      World Bank country API - ISO2/ISO3 and region
+data/meta/
+    euro_area_members.csv    parsed from the ECB "euro area" country page (euro adoption year)
+    bis_country_groups.csv   parsed from BIS "Convention for country groupings" (advanced list)
+    countries.csv            one row per economy: names, region, group, coverage, policy-rate mapping
+    coverage.csv             % missing by economy x dataset x period
+    fetch_summary.json       how many economies were actually downloaded, and when
 
---------------------------------------------------------------------------------
-API NOTE (2026-09-11) - why the URLs in this file changed
---------------------------------------------------------------------------------
-The previous version pointed at https://data.bis.org/topics/{TOPIC}/{FLOW_REF}/{KEY}
-That host is the BIS *web UI*, not a data API: every one of those calls returned
-    HTTP 404  {"detail":"Not Found"}
-(verified with a direct curl, not just via pandas.read_csv).
+The two large BIS files are stored gzip-compressed. Compression is lossless: the file is
+exactly what the API returned, and pandas reads it directly (pd.read_csv(...csv.gz)).
 
-The working machine-readable endpoint is the BIS SDMX RESTful API v2:
-    https://stats.bis.org/api/v2/data/dataflow/BIS/{FLOW_ID}/{VERSION}/{KEY}?format=csv
+Endpoint notes (kept from the first version of this script)
+----------------------------------------------------------
+data.bis.org/topics/... is the BIS web UI and answers HTTP 404 to data requests. The data
+API is the BIS SDMX RESTful API v2:
+    https://stats.bis.org/api/v2/data/dataflow/BIS/{FLOW}/{VERSION}/{KEY}?format=csv&labels=both
+Dataflow versions confirmed against /api/v2/structure/dataflow/BIS: WS_DSR 1.0, WS_TC 2.0,
+WS_CBPOL 1.0. `labels=both` emits code and label columns side by side.
 
-Dataflow versions were re-confirmed live against
-    https://stats.bis.org/api/v2/structure/dataflow/BIS/?format=sdmx-json
-    -> WS_DSR 1.0 | WS_TC 2.0 | WS_CBPOL 1.0   (unchanged, so only the host was wrong)
-
-Two more parameter changes follow from the v2 API:
-  * `include=code,label` (v1 style) is not a v2 parameter -> replaced by `labels=both`,
-    which emits BOTH the code column and the human-readable label column
-    (e.g. DSR_BORROWERS + "Borrowers"). Step 2 of the assignment reads labels from
-    these files, so `labels=both` is required, not cosmetic.
-  * `file_format=csv&format=long` -> plain `format=csv` (SDMX-CSV is already long).
-
-Dimension order, taken from the real DSDs (not guessed):
+Dimension order, from the DSDs:
     BIS_DSR(1.0)           FREQ . BORROWERS_CTY . DSR_BORROWERS
     BIS_TOTAL_CREDIT(2.0)  FREQ . BORROWERS_CTY . TC_BORROWERS . TC_LENDERS
                            . VALUATION . UNIT_TYPE . TC_ADJUST
     BIS_CBPOL(1.0)         FREQ . REF_AREA
+An empty position in a key means "all values", so `Q..H+N+P` is every economy.
 """
 
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import gzip
+import hashlib
+import html
 import io
+import json
+import re
+import sys
 from pathlib import Path
 
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
-RAW_DIR = Path(__file__).resolve().parent.parent / "data" / "raw"
-RAW_DIR.mkdir(parents=True, exist_ok=True)
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from analysis import core  # noqa: E402  (shared logic: mapping, coverage)
+
+RAW = ROOT / "data" / "raw"
+META = ROOT / "data" / "meta"
+CACHE = ROOT / "data" / "cache"
+for d in (RAW, META, CACHE):
+    d.mkdir(parents=True, exist_ok=True)
 
 BIS_API = "https://stats.bis.org/api/v2/data/dataflow/BIS"
-
-BIS_COUNTRIES = "KR+TH+MY+HK"
-WB_COUNTRIES = "KOR;THA;MYS;HKG"  # World Bank dung ISO3
-
-# Analysis window requested for the assignment.
-START_Q, END_Q = "2016-Q1", "2025-Q4"
-START_M, END_M = "2016-01", "2025-12"
-START_Y, END_Y = "2016", "2025"
-
-# BIS codes confirmed against the official codelists (see verify_codes() below):
-#   CL_TC_BORROWERS : H = Households & NPISHs, N = Non-financial corporations,
-#                     P = Private non-financial sector, C = Non financial sector,
-#                     G = General government
-#   CL_TC_LENDERS   : A = All sectors
-#   CL_VALUATION    : M = Market value
-#   CL_BIS_UNIT     : 770 = Percentage of GDP
-#   CL_ADJUST       : A = Adjusted for breaks
-BORROWERS = "H+N+P"
+WB_API = "https://api.worldbank.org/v2"
+ECB_EURO_PAGE = "https://www.ecb.europa.eu/euro/intro/html/map.en.html"
+BIS_GROUPS_PDF = "https://www.bis.org/statistics/country_groupings.pdf"
 
 BIS_DATASETS = {
-    "dsr": {
-        "label": "Debt service ratios (analysis window)",
-        "flow": "WS_DSR",
-        "version": "1.0",
-        "key": f"Q.{BIS_COUNTRIES}.{BORROWERS}",
-        "start": START_Q,
-        "end": END_Q,
-        "group": ["BORROWERS_CTY", "DSR_BORROWERS"],
-    },
-    "dsr_longrun": {
-        # Same series, full history. Used ONLY to compute each country's own 20-year
-        # average (2006-2025), the benchmark BIS recommends instead of comparing raw
-        # DSR levels across countries. Kept in a separate file so the analysis window
-        # file above stays exactly 2016-2025.
-        "label": "Debt service ratios (full history, for the 20-year benchmark)",
-        "flow": "WS_DSR",
-        "version": "1.0",
-        "key": f"Q.{BIS_COUNTRIES}.{BORROWERS}",
-        "start": None,
-        "end": END_Q,
-        "group": ["BORROWERS_CTY", "DSR_BORROWERS"],
-    },
-    "credit_gdp": {
-        # H / N / P all requested: the DSR breakdown only exists for KR, but the
-        # credit/GDP breakdown exists for all four countries, so "who borrows" can
-        # still be answered for TH/MY/HK (as debt stock, NOT as debt service).
-        "label": "Credit to non-financial sector (% GDP)",
-        "flow": "WS_TC",
-        "version": "2.0",
-        "key": f"Q.{BIS_COUNTRIES}.{BORROWERS}.A.M.770.A",
-        "start": START_Q,
-        "end": END_Q,
-        "group": ["BORROWERS_CTY", "TC_BORROWERS"],
-    },
-    "policy_rate": {
-        "label": "Policy rates (monthly, incl. US as the Fed reference)",
-        "flow": "WS_CBPOL",
-        "version": "1.0",
-        "key": f"M.{BIS_COUNTRIES}+US",
-        "start": START_M,
-        "end": END_M,
-        "group": ["REF_AREA"],
-    },
+    "dsr": {"flow": "WS_DSR", "version": "1.0", "key": "Q..H+N+P",
+            "file": "dsr.csv", "gzip": False},
+    # TC_LENDERS=A all sectors, VALUATION=M market value, UNIT_TYPE=770 % of GDP,
+    # TC_ADJUST=A adjusted for breaks (codes checked against the BIS codelists).
+    "credit_gdp": {"flow": "WS_TC", "version": "2.0", "key": "Q..H+N+P.A.M.770.A",
+                   "file": "credit_gdp.csv.gz", "gzip": True},
+    "policy_rate": {"flow": "WS_CBPOL", "version": "1.0", "key": "M.",
+                    "file": "policy_rate.csv.gz", "gzip": True},
+}
+
+# Vietnamese display names. Translation only: no data lives here.
+NAME_VI = {
+    "AR": "Argentina", "AT": "Áo", "AU": "Úc", "BE": "Bỉ", "BR": "Brazil", "CA": "Canada",
+    "CH": "Thụy Sĩ", "CL": "Chile", "CN": "Trung Quốc", "CO": "Colombia", "CZ": "Séc",
+    "DE": "Đức", "DK": "Đan Mạch", "ES": "Tây Ban Nha", "FI": "Phần Lan", "FR": "Pháp",
+    "GB": "Anh", "GR": "Hy Lạp", "HK": "Hong Kong", "HR": "Croatia", "HU": "Hungary",
+    "ID": "Indonesia", "IE": "Ireland", "IL": "Israel", "IN": "Ấn Độ", "IS": "Iceland",
+    "IT": "Ý", "JP": "Nhật Bản", "KR": "Hàn Quốc", "KW": "Kuwait", "LU": "Luxembourg",
+    "MA": "Maroc", "MK": "Bắc Macedonia", "MX": "Mexico", "MY": "Malaysia", "NL": "Hà Lan",
+    "NO": "Na Uy", "NZ": "New Zealand", "PE": "Peru", "PH": "Philippines", "PL": "Ba Lan",
+    "PT": "Bồ Đào Nha", "RO": "Romania", "RS": "Serbia", "RU": "Nga", "SA": "Ả Rập Xê Út",
+    "SE": "Thụy Điển", "SG": "Singapore", "TH": "Thái Lan", "TR": "Thổ Nhĩ Kỳ", "US": "Mỹ",
+    "XM": "Khu vực euro", "ZA": "Nam Phi",
+}
+
+# BIS aggregates that are not economies. XM (euro area) is kept: it is the
+# policy-rate source for every euro member and has its own credit series.
+BIS_AGGREGATES = {"4T", "5A", "5R", "G2"}
+
+# Exchange-rate-centred regimes. Each note links the central bank's own page.
+REGIME_NOTES = {
+    "HK": ("USD peg (Linked Exchange Rate System). The HKMA base rate is set by formula "
+           "from the US policy rate, so Hong Kong imports the Fed cycle.",
+           "https://www.hkma.gov.hk/eng/key-functions/money/linked-exchange-rate-system/"),
+    "SG": ("MAS conducts monetary policy through the exchange rate (S$NEER), not an "
+           "interest rate; BIS WS_CBPOL has no Singapore series.",
+           "https://www.mas.gov.sg/monetary-policy"),
+    "DK": ("Fixed exchange rate policy against the euro; Danmarks Nationalbank's rate "
+           "is set to keep the krone stable, so it largely follows the ECB.",
+           "https://www.nationalbanken.dk/en/what-we-do/stable-prices-monetary-policy-and-the-danish-economy"),
 }
 
 
-def fetch_bis(name: str, spec: dict) -> pd.DataFrame | None:
-    """Download one BIS dataflow to data/raw/{name}.csv and report its coverage."""
-    url = f"{BIS_API}/{spec['flow']}/{spec['version']}/{spec['key']}"
-    params = {"format": "csv", "labels": "both"}
-    if spec["start"]:
-        params["startPeriod"] = spec["start"]
-    if spec["end"]:
-        params["endPeriod"] = spec["end"]
+# ----------------------------------------------------------------------------- HTTP
+def make_session() -> requests.Session:
+    """Session with exponential back-off on transient failures (429 / 5xx / resets)."""
+    s = requests.Session()
+    retry = Retry(total=5, connect=5, read=5, backoff_factor=1.5,
+                  status_forcelist=(429, 500, 502, 503, 504),
+                  allowed_methods=frozenset({"GET"}), raise_on_status=False)
+    s.mount("https://", HTTPAdapter(max_retries=retry))
+    s.headers["User-Agent"] = "BIS-dta-story/2.0 (+https://github.com/thienanpham160806-code/BIS-dta-story)"
+    return s
 
-    print(f"\n=== {spec['label']} ({name}) - BIS ===")
-    print(f"URL: {url}")
-    print(f"Params: {params}")
 
-    try:
-        resp = requests.get(url, params=params, timeout=90)
-    except Exception as exc:
-        print(f"LOI mang: {exc}")
-        return None
+SESSION = make_session()
+REFRESH = False
 
+
+def get_cached(url: str, params: dict | None = None, timeout: int = 180) -> bytes:
+    """GET with an on-disk cache keyed by URL + params. --refresh bypasses the cache."""
+    req = requests.Request("GET", url, params=params).prepare()
+    key = hashlib.sha1(req.url.encode()).hexdigest()[:16]
+    path = CACHE / key
+    if path.exists() and not REFRESH:
+        print(f"  [cache] {req.url}")
+        return path.read_bytes()
+    print(f"  [GET]   {req.url}")
+    resp = SESSION.get(req.url, timeout=timeout)
     if resp.status_code != 200:
-        # Show the real response body, not just the exception pandas would raise.
-        print(f"HTTP {resp.status_code} - body preview:\n{resp.text[:500]}")
-        return None
+        raise RuntimeError(f"HTTP {resp.status_code} for {req.url}\n{resp.text[:400]}")
+    path.write_bytes(resp.content)
+    return resp.content
 
-    try:
-        df = pd.read_csv(io.StringIO(resp.text))
-    except Exception as exc:
-        print(f"Khong parse duoc CSV: {exc}\nBody preview:\n{resp.text[:500]}")
-        return None
 
+# ----------------------------------------------------------------------------- BIS
+def fetch_bis(name: str, spec: dict) -> pd.DataFrame:
+    url = f"{BIS_API}/{spec['flow']}/{spec['version']}/{spec['key']}"
+    print(f"\n=== BIS {spec['flow']} {spec['version']} ({name}) ===")
+    body = get_cached(url, {"format": "csv", "labels": "both"})
+    df = pd.read_csv(io.BytesIO(body), low_memory=False)
     if df.empty:
-        print("CANH BAO: dataframe rong - key co the sai hoac series khong ton tai.")
-        return None
-
-    out_path = RAW_DIR / f"{name}.csv"
-    df.to_csv(out_path, index=False)
-    print(f"Da luu {out_path} - {df.shape[0]} dong, {df.shape[1]} cot")
-
-    # Coverage report per series: never silently accept an all-null country.
-    cov = df.groupby(spec["group"]).agg(
-        n_obs=("OBS_VALUE", "size"),
-        n_valid=("OBS_VALUE", "count"),
-        first=("TIME_PERIOD", "min"),
-        last=("TIME_PERIOD", "max"),
-    )
-    cov["pct_missing"] = (1 - cov["n_valid"] / cov["n_obs"]) * 100
-    print(cov.to_string())
-
-    empty = cov.index[cov["n_valid"] == 0].tolist()
-    if empty:
-        print(f"CANH BAO: cac series sau KHONG co gia tri nao: {empty}")
+        raise RuntimeError(f"{name}: empty response - key wrong or series withdrawn")
+    out = RAW / spec["file"]
+    if spec["gzip"]:
+        # mtime=0 keeps the archive byte-identical across runs with the same data.
+        with open(out, "wb") as fh, gzip.GzipFile(fileobj=fh, mode="wb", mtime=0) as gz:
+            gz.write(body)
+    else:
+        out.write_bytes(body)
+    print(f"  saved {out.relative_to(ROOT)}  {len(df):,} rows")
     return df
 
 
-def verify_codes() -> None:
-    """Print the official BIS codelists so Step 2 confirms codes instead of guessing."""
-    print("\n=== BIS codelists (nguon: stats.bis.org/api/v2/structure/codelist) ===")
-    for cl in ("CL_TC_BORROWERS", "CL_TC_LENDERS", "CL_VALUATION", "CL_ADJUST"):
-        url = f"https://stats.bis.org/api/v2/structure/codelist/BIS/{cl}/1.0"
-        try:
-            data = requests.get(url, params={"format": "sdmx-json"}, timeout=60).json()
-        except Exception as exc:
-            print(f"{cl}: khong lay duoc ({exc})")
-            continue
-        codes = {c["id"]: c.get("name") for lst in data["data"]["codelists"] for c in lst["codes"]}
-        print(f"  {cl}: {codes}")
-
-    # CL_BIS_UNIT is large; only the codes this project uses are relevant.
-    url = "https://stats.bis.org/api/v2/structure/codelist/BIS/CL_BIS_UNIT/1.0"
-    try:
-        data = requests.get(url, params={"format": "sdmx-json"}, timeout=60).json()
-        codes = {
-            c["id"]: c.get("name")
-            for lst in data["data"]["codelists"]
-            for c in lst["codes"]
-            if c["id"] in ("770", "799", "USD", "XDC")
-        }
-        print(f"  CL_BIS_UNIT (subset): {codes}")
-    except Exception as exc:
-        print(f"CL_BIS_UNIT: khong lay duoc ({exc})")
+# ----------------------------------------------------------------------------- World Bank
+def fetch_wb_country_meta() -> pd.DataFrame:
+    print("\n=== World Bank country metadata (ISO codes, region) ===")
+    body = get_cached(f"{WB_API}/country", {"format": "json", "per_page": 400})
+    rows = json.loads(body)[1]
+    df = pd.DataFrame([{
+        "iso2_wb": r["iso2Code"], "iso3": r["id"], "wb_name": r["name"],
+        "region": r["region"]["value"].strip(),
+    } for r in rows])
+    df.to_csv(RAW / "wb_country_meta.csv", index=False)
+    print(f"  saved data/raw/wb_country_meta.csv  {len(df)} rows")
+    return df
 
 
-def fetch_npl_worldbank() -> None:
-    """NPL ratio (no xau), World Bank indicator FB.AST.NPER.ZS - dung de cross-check DSR."""
-    print("\n=== NPL ratio (World Bank, cross-check) ===")
-    url = (
-        f"https://api.worldbank.org/v2/country/{WB_COUNTRIES}/indicator/FB.AST.NPER.ZS"
-        f"?format=json&date={START_Y}:{END_Y}&per_page=1000"
-    )
-    print(f"URL: {url}")
-    try:
-        payload = requests.get(url, timeout=60).json()
-    except Exception as exc:
-        print(f"Loi goi World Bank API: {exc}")
-        return
-
+def fetch_npl(iso3_codes: list[str]) -> pd.DataFrame:
+    print("\n=== World Bank NPL ratio FB.AST.NPER.ZS (all years) ===")
+    url = f"{WB_API}/country/{';'.join(sorted(iso3_codes))}/indicator/FB.AST.NPER.ZS"
+    payload = json.loads(get_cached(url, {"format": "json", "per_page": 20000}))
     if not isinstance(payload, list) or len(payload) < 2 or payload[1] is None:
-        print("World Bank tra ve rong - kiem tra lai ma nuoc/indicator.")
-        print(payload)
-        return
+        raise RuntimeError(f"World Bank returned no data: {str(payload)[:300]}")
+    df = pd.DataFrame([{
+        "country": r["country"]["value"], "countryiso3code": r["countryiso3code"],
+        "date": int(r["date"]), "NPL_ratio": r["value"],
+    } for r in payload[1]]).sort_values(["countryiso3code", "date"])
+    df.to_csv(RAW / "npl_ratio_worldbank.csv", index=False)
+    print(f"  saved data/raw/npl_ratio_worldbank.csv  {len(df)} rows, "
+          f"{df.dropna().countryiso3code.nunique()} economies with at least one value")
+    return df
 
-    df = pd.DataFrame(
-        [
-            {
-                "country": r["country"]["value"],
-                "countryiso3code": r["countryiso3code"],
-                "date": r["date"],
-                "NPL_ratio": r["value"],
-            }
-            for r in payload[1]
-        ]
-    )
-    out_path = RAW_DIR / "npl_ratio_worldbank.csv"
-    df.to_csv(out_path, index=False)
-    print(f"Da luu {out_path} - {df.shape[0]} dong")
 
-    cov = df.groupby("countryiso3code").agg(
-        n_obs=("NPL_ratio", "size"),
-        n_valid=("NPL_ratio", "count"),
-        first=("date", "min"),
-        last=("date", "max"),
-    )
-    cov["pct_missing"] = (1 - cov["n_valid"] / cov["n_obs"]) * 100
-    print(cov.to_string())
+# ----------------------------------------------------------------------------- official lists
+def fetch_euro_area_members() -> pd.DataFrame:
+    """Parse 'Country ... Euro since YYYY' from the ECB euro area page."""
+    print("\n=== Euro area members (ECB) ===")
+    raw = get_cached(ECB_EURO_PAGE).decode("utf-8", "replace")
+    raw = re.sub(r"<script.*?</script>|<style.*?</style>", " ", raw, flags=re.S)
+    text = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", raw)))
+    # A name is 1-3 capitalised words directly before the status text; this skips UI
+    # text such as "Please select a country" that precedes the first entry.
+    pat = re.compile(r"((?:[A-Z][a-z]+ ){0,2}[A-Z][a-z]+) EU member using the euro EU "
+                     r"(?:founding )?member (?:since|in) \d{4} Euro since (\d{4})")
+    found = {m.group(1).removeprefix("The ").strip(): int(m.group(2)) for m in pat.finditer(text)}
+    if len(found) < 19:
+        raise RuntimeError(f"ECB page parse found only {len(found)} members - page layout changed?")
+    df = pd.DataFrame(sorted(found.items()), columns=["ecb_name", "euro_since"])
+    df["source"] = ECB_EURO_PAGE
+    df["retrieved"] = dt.date.today().isoformat()
+    print(f"  {len(df)} members: " + ", ".join(f"{n} {y}" for n, y in found.items()))
+    return df
+
+
+def fetch_bis_advanced_list() -> list[str]:
+    """Advanced-economy names from the BIS 'Convention for country groupings' PDF."""
+    import pdfplumber
+
+    print("\n=== BIS country groupings (advanced vs EMDE) ===")
+    body = get_cached(BIS_GROUPS_PDF)
+    with pdfplumber.open(io.BytesIO(body)) as pdf:
+        text = " ".join(p.extract_text() or "" for p in pdf.pages)
+    text = re.sub(r"\s+", " ", text)
+    m = re.search(r"Advanced economies \(AEs\): (.+?) Emerging market and developing", text)
+    if not m:
+        raise RuntimeError("BIS groupings PDF: advanced-economy sentence not found")
+    body_txt = re.sub(r"\d", "", m.group(1))                     # drop footnote markers
+    body_txt = body_txt.replace(" and selected overseas and dependent territories", "")
+    names = [n.strip().removeprefix("and ").removeprefix("the ").strip(" .")
+             for n in re.split(r",| and (?=the United States)", body_txt)]
+    names = [n for n in names if n]
+    print(f"  advanced: {names}")
+    return names
+
+
+# ----------------------------------------------------------------------------- build meta
+def norm(name: str) -> str:
+    return re.sub(r"[^a-z]", "", name.lower().replace("the ", ""))
+
+
+def build_countries(dsr, credit, policy, npl, wb_meta, euro, advanced) -> pd.DataFrame:
+    names = {}
+    for df, cc, lab in [(dsr, "BORROWERS_CTY", "Borrowers' country"),
+                        (credit, "BORROWERS_CTY", "Borrowers' country"),
+                        (policy, "REF_AREA", "Reference area")]:
+        names.update(dict(zip(df[cc], df[lab])))
+    codes = sorted(set(names) - BIS_AGGREGATES)
+
+    euro_since = {}
+    for _, r in euro.iterrows():
+        hit = [c for c in codes if norm(names[c]) == norm(r["ecb_name"])]
+        if hit:
+            euro_since[hit[0]] = int(r["euro_since"])
+    adv_norm = {norm(n) for n in advanced}
+
+    wb = wb_meta.set_index("iso2_wb")
+    tables = core.tidy_all(dsr, credit, policy, npl, wb_meta)
+    rows = []
+    for c in codes:
+        is_agg = c == "XM"
+        rec = {
+            "iso2": c, "name_en": names[c], "name_vi": NAME_VI.get(c, names[c]),
+            "iso3": "EMU" if is_agg else (wb.loc[c, "iso3"] if c in wb.index else ""),
+            "region": "Europe & Central Asia" if is_agg else (wb.loc[c, "region"] if c in wb.index else ""),
+            "is_aggregate": is_agg,
+            # BIS: AEs are the listed economies plus the euro area; all others are EMDEs.
+            "group": "advanced" if (is_agg or c in euro_since or norm(names[c]) in adv_norm) else "emerging",
+            "euro_member": c in euro_since,
+            "euro_since": euro_since.get(c, ""),
+        }
+        for b in "HNP":
+            s = tables["dsr"].get(f"{c}_{b}")
+            rec[f"has_dsr_{b}"] = bool(s is not None and s.notna().any())
+        for ds in ("dsr", "credit", "npl"):
+            cols = [k for k in tables[ds] if k.split("_")[0] == c]
+            valid = pd.concat([tables[ds][k].dropna() for k in cols]) if cols else pd.Series(dtype=float)
+            rec[f"{ds}_first"] = core.period_label(valid.index.min(), ds) if len(valid) else ""
+            rec[f"{ds}_last"] = core.period_label(valid.index.max(), ds) if len(valid) else ""
+        code, pre = core.policy_code_for(c, euro_since, set(tables["policy_raw"].columns))
+        rec["policy_code"] = code
+        rec["policy_code_pre_euro"] = pre
+        mapped = core.mapped_policy(c, tables["policy_raw"], euro_since)
+        rec["policy_first"] = core.period_label(mapped.first_valid_index(), "policy") if mapped.notna().any() else ""
+        rec["policy_last"] = core.period_label(mapped.last_valid_index(), "policy") if mapped.notna().any() else ""
+        note, url = REGIME_NOTES.get(c, ("", ""))
+        if rec["euro_member"]:
+            note = (f"Euro area member since {euro_since[c]}: policy rate = ECB (BIS XM) from "
+                    f"{euro_since[c]}-01" + (f"; national rate ({pre}) before." if pre else "."))
+            url = ECB_EURO_PAGE
+        rec["policy_note"] = note
+        rec["policy_note_source"] = url
+        rows.append(rec)
+    return pd.DataFrame(rows)
+
+
+def main() -> None:
+    global REFRESH
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[1])
+    ap.add_argument("--refresh", action="store_true", help="ignore the HTTP cache")
+    REFRESH = ap.parse_args().refresh
+
+    dsr = fetch_bis("dsr", BIS_DATASETS["dsr"])
+    credit = fetch_bis("credit_gdp", BIS_DATASETS["credit_gdp"])
+    policy = fetch_bis("policy_rate", BIS_DATASETS["policy_rate"])
+    wb_meta = fetch_wb_country_meta()
+    euro = fetch_euro_area_members()
+    advanced = fetch_bis_advanced_list()
+
+    euro.to_csv(META / "euro_area_members.csv", index=False)
+    pd.DataFrame({"name": advanced, "group": "advanced", "source": BIS_GROUPS_PDF}) \
+        .to_csv(META / "bis_country_groups.csv", index=False)
+
+    bis_codes = (set(dsr.BORROWERS_CTY) | set(credit.BORROWERS_CTY) | set(policy.REF_AREA)) - BIS_AGGREGATES
+    iso3 = core.bis_to_wb_iso3(sorted(bis_codes), wb_meta)
+    npl = fetch_npl(sorted(set(iso3.values())))
+
+    countries = build_countries(dsr, credit, policy, npl, wb_meta, euro, advanced)
+    countries.to_csv(META / "countries.csv", index=False)
+
+    tables = core.load_tables(ROOT / "data")
+    coverage = core.coverage_table(tables)
+    coverage.to_csv(META / "coverage.csv", index=False)
+
+    eco = countries[~countries.is_aggregate]          # counts below are economies only
+    summary = {
+        "retrieved": dt.date.today().isoformat(),
+        "economies_total": len(eco),
+        "aggregates": countries.loc[countries.is_aggregate, "iso2"].tolist(),
+        "with_dsr": int(eco[["has_dsr_H", "has_dsr_N", "has_dsr_P"]].any(axis=1).sum()),
+        "with_dsr_breakdown_HN": int((eco.has_dsr_H & eco.has_dsr_N).sum()),
+        "with_credit": int((eco.credit_last != "").sum()),
+        "with_policy_rate": int((eco.policy_last != "").sum()),
+        "with_npl": int((eco.npl_last != "").sum()),
+        "euro_members_in_data": int(eco.euro_member.sum()),
+        "latest": {
+            "dsr": max(filter(None, countries.dsr_last)),
+            "credit": max(filter(None, countries.credit_last)),
+            "policy": max(filter(None, countries.policy_last)),
+            "npl": max(filter(None, countries.npl_last)),
+        },
+    }
+    (META / "fetch_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    print("\n=== Countries ===")
+    print(countries[["iso2", "name_en", "group", "region", "has_dsr_H", "has_dsr_N", "has_dsr_P",
+                     "dsr_last", "credit_last", "policy_code", "policy_last", "npl_last"]].to_string(index=False))
+    print("\n=== Coverage (% missing), P / policy / NPL, by period ===")
+    view = coverage[coverage.series.isin(["dsr_P", "policy", "npl"])]
+    print(view.pivot_table(index="iso2", columns=["series", "period"], values="pct_missing").round(0).to_string())
+    print("\n=== Summary ===")
+    print(json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":
-    for name, spec in BIS_DATASETS.items():
-        fetch_bis(name, spec)
-
-    verify_codes()
-    fetch_npl_worldbank()
-
-    print("\nXong. data/raw/ giu nguyen ban goc, khong sua tay.")
-    print("Buoc tiep theo: doc metadata (Buoc 2) -> DSR_BORROWERS H/N/P, UNIT_TYPE 770,")
-    print("tan suat Q/M/A - roi moi lam sach. NPL la annual, DSR/credit quarterly,")
-    print("policy rate monthly: phai dua ve cung tan suat truoc khi so sanh.")
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    main()

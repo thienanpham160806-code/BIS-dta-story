@@ -51,13 +51,13 @@ Chạy lệnh cài đặt toàn bộ dependencies:
 pip install -r requirements.txt
 ```
 
-*(Các thư viện gồm: `pandas`, `requests`, `matplotlib`, `seaborn`, `plotly`, `jupyter`)*
+*(Các thư viện gồm: `pandas`, `numpy`, `requests`, `pdfplumber`, `matplotlib`, `plotly`, `jupyter`, `nbconvert`, `pytest`)*
 
 ---
 
 ## 3. Cách chạy sản phẩm Web (Interactive Dashboard & Story)
 
-Đây là sản phẩm chính của đồ án, gồm Bảng điều khiển tương tác (Dashboard) và Câu chuyện dữ liệu 9 phần (Data Story).
+Đây là sản phẩm chính của đồ án, gồm ba trang: Bảng điều khiển (mọi nền kinh tế BIS có số liệu), Câu chuyện dữ liệu (bốn nước gốc trong bức tranh toàn cầu) và Hướng dẫn.
 
 ### Cách 1: Chạy tự động (Khuyến nghị — Nhanh nhất)
 Chỉ cần chạy 1 dòng lệnh duy nhất:
@@ -67,7 +67,7 @@ python product/serve.py
 ```
 
 **Lệnh này sẽ tự động:**
-1. Kiểm tra xem dữ liệu `data.json` đã có chưa (nếu chưa, sẽ tự động build từ dữ liệu gốc trong `data/raw/`).
+1. Kiểm tra `data.json` đã có và còn mới so với `data/raw/`, `data/meta/` và `analysis/` chưa (nếu chưa, tự build lại).
 2. Khởi chạy máy chủ nội bộ tại địa chỉ `http://localhost:8000/`.
 3. Tự động bật trình duyệt web mặc định của bạn mở sẵn trang web.
 
@@ -84,7 +84,7 @@ Nếu cổng 8000 trên máy bạn đang bị ứng dụng khác chiếm:
    ```
 2. **Khởi động server trên cổng khác (ví dụ cổng 8080):**
    ```bash
-   python -m http.server 8080 --directory product/site
+   python product/serve.py 8080
    ```
 3. Mở trình duyệt và truy cập: `http://localhost:8080/`
 
@@ -92,7 +92,7 @@ Nếu cổng 8000 trên máy bạn đang bị ứng dụng khác chiếm:
 
 ## 4. Cách chạy và kiểm tra Notebook phân tích (`01_analysis.ipynb`)
 
-Notebook chứa toàn bộ các phép tính thống kê, bảng tóm tắt và sinh ra 8 biểu đồ học thuật.
+Notebook hiển thị và giải thích các kết quả tính trong `analysis/core.py` (module dùng chung với web), kèm biểu đồ và phần câu chuyện được sinh từ chính kết quả chạy.
 
 ### Cách 1: Mở giao diện tương tác Jupyter
 ```bash
@@ -118,7 +118,8 @@ python -m jupyter nbconvert --to notebook --execute notebooks/01_analysis.ipynb 
 Dữ liệu thô từ BIS và World Bank đã được lưu sẵn trong thư mục `data/raw/`. Bạn **không cần** chạy lại bước này trừ khi muốn cập nhật số liệu mới nhất từ máy chủ BIS:
 
 ```bash
-python scripts/fetch_data.py
+python scripts/fetch_data.py            # dùng cache trong data/cache
+python scripts/fetch_data.py --refresh  # bỏ qua cache, tải lại toàn bộ
 ```
 
 Sau khi tải xong, hãy chạy lại:
@@ -127,12 +128,23 @@ Sau khi tải xong, hãy chạy lại:
 
 ---
 
+## 5b. Chạy kiểm thử
+
+```bash
+pytest -q
+```
+
+Kiểm thử thuật toán xác định mốc tăng lãi suất, đo độ trễ và đánh dấu cắt cụt, ánh xạ lãi suất khu vực euro, và
+độ lệch so với trung bình 20 năm. GitHub Actions chạy lại các kiểm thử này và notebook mỗi lần push.
+
+---
+
 ## 6. Xử lý sự cố thường gặp (Troubleshooting)
 
 | Vấn đề | Nguyên nhân | Cách khắc phục |
 |---|---|---|
 | `python: command not found` | Chưa cài Python hoặc chưa tích chọn Add to PATH | Cài lại Python và nhớ chọn tích **"Add python.exe to PATH"**. Trên macOS/Linux hãy thử gõ `python3`. |
-| `Address already in use` hoặc `Port 8000 is busy` | Cổng 8000 đang có một server khác chạy ngầm | Chạy trên cổng khác: `python -m http.server 8080 --directory product/site` hoặc tìm tắt tiến trình cũ. |
+| `Address already in use` hoặc `Port 8000 is busy` | Cổng 8000 đang có một server khác chạy ngầm | Chạy trên cổng khác: `python product/serve.py 8080` hoặc tìm tắt tiến trình cũ. |
 | Lỗi font tiếng Việt trên terminal Windows | Terminal dùng bảng mã legacy `cp1252` | Gõ lệnh: `chcp 65001` trước khi chạy lệnh Python. |
 | Mở web thấy biểu đồ trắng / không tải | Trình duyệt chặn file cục bộ | Hãy chắc chắn bạn mở qua máy chủ `http://localhost:8000/`, không click đúp trực tiếp mở file `index.html` dạng `file:///...`. |
 

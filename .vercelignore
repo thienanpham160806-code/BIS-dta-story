@@ -1,0 +1,7 @@
+# Only product/site is served; keep uploads small.
+data/
+notebooks/
+tests/
+analysis/
+scripts/
+.claude/

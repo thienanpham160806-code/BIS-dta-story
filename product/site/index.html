@@ -1,486 +1,250 @@
 <!doctype html>
-<html lang="vi" data-theme="dark">
+<html lang="vi" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gánh nặng âm thầm — Độ trễ chính sách tiền tệ ở Châu Á | BIS Macro Story</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Crect width=%2716%27 height=%2716%27 rx=%273%27 fill=%27%2338bdf8%27/%3E%3Cpath d=%27M3 12L6 7L9 9L13 3%27 stroke=%27%23fff%27 stroke-width=%271.8%27 fill=%27none%27/%3E%3C/svg%3E">
+<title>Độ trễ lãi suất → gánh nặng trả nợ · BIS</title>
+<meta name="description" content="Dashboard dữ liệu BIS: độ trễ truyền dẫn từ lãi suất chính sách sang tỷ lệ trả nợ (DSR) của khu vực tư nhân, cho mọi nền kinh tế BIS công bố.">
+<meta name="theme-color" content="#f7f4ee">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%231f4e8c'/%3E%3Cpath d='M6 22l6-7 5 4 9-11' stroke='%23fff' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+<script>
+  // Theme before first paint: saved choice, else OS preference. Storage may be blocked.
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem("theme"); } catch (e) {}
+    if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    document.documentElement.dataset.theme = t;
+  })();
+</script>
+<link rel="preload" href="fonts/plexsans-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/newsreader-600.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/newsreader-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="data.json" as="fetch" type="application/json" crossorigin>
+<link rel="preload" href="guide.json" as="fetch" type="application/json" crossorigin>
+<link rel="modulepreload" href="js/main.js">
+<link rel="modulepreload" href="js/util.js">
+<link rel="modulepreload" href="js/state.js">
+<link rel="modulepreload" href="js/charts.js">
+<link rel="modulepreload" href="js/ui.js">
+<link rel="modulepreload" href="js/guide.js">
+<link rel="modulepreload" href="js/story.js">
+<link rel="modulepreload" href="js/tour.js">
+<link rel="modulepreload" href="js/country.js">
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<a class="skip" href="#main">Bỏ qua tới nội dung chính</a>
 
-<div id="read-progress"></div>
-
-<!-- ═══════════════════════════ HEADER ═══════════════════════════ -->
-<header>
-  <div class="wrap head-in">
-    <div class="brand-wrap">
-      <div class="brand-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-        </svg>
-      </div>
-      <div class="brand">
-        <div class="brand-title">
-          Gánh nặng âm thầm
-          <span class="badge-live">BIS SDMX v2 API</span>
-        </div>
-        <div class="brand-sub">Độ trễ chính sách thắt chặt & khả năng hồi phục nợ tư nhân · KR · TH · MY · HK</div>
-      </div>
-    </div>
-
-    <div class="tabs" role="tablist">
-      <button class="tab" role="tab" id="tab-dash" aria-selected="true">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
-        Bảng điều khiển
-      </button>
-      <button class="tab" role="tab" id="tab-story" aria-selected="false">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-        Câu chuyện dữ liệu
-      </button>
-    </div>
-
-    <div class="head-actions">
-      <button class="icon-btn" id="theme" title="Đổi giao diện Sáng / Tối" aria-label="Đổi giao diện Sáng / Tối">
-        <span id="theme-icon">◐</span>
-      </button>
-    </div>
-  </div>
+<header class="top">
+  <a class="brand" href="#bang-dieu-khien">Độ trễ lãi suất → gánh nặng trả nợ<small>Dữ liệu BIS · <span data-k="n_dsr">…</span> nền kinh tế có DSR</small></a>
+  <nav class="tabs" aria-label="Các trang">
+    <a href="#bang-dieu-khien" data-view="dashboard">Bảng điều khiển</a>
+    <a href="#cau-chuyen" data-view="story">Câu chuyện dữ liệu</a>
+    <a href="#huong-dan" data-view="guide">Hướng dẫn</a>
+  </nav>
+  <div class="spacer"></div>
+  <button class="btn ghost-accent share" id="share-btn" type="button" aria-label="Sao chép link chia sẻ đúng bộ lọc này">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg><span class="share-txt">Sao chép link</span>
+  </button>
+  <button class="iconbtn" id="theme-btn" type="button" aria-label="Chuyển giao diện sáng/tối">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  </button>
 </header>
 
-<!-- ═══════════════════════════ DASHBOARD ═══════════════════════════ -->
-<main class="wrap" id="view-dash">
-
-  <!-- Hero Overview Card -->
-  <div class="hero-bar">
-    <div class="hero-text">
-      <h2>Bối cảnh phân tích: Chu kỳ thắt chặt tiền tệ & Gánh nặng nợ tư nhân</h2>
-      <p>Theo dõi và đối chiếu dữ liệu 10 năm (2016–2025) từ Ngân hàng Thanh toán Quốc tế (BIS) và World Bank để kiểm chứng độ trễ truyền dẫn lãi suất, quy mô đòn bẩy và rủi ro nợ xấu tại 4 nền kinh tế Châu Á.</p>
-    </div>
-    <div class="hero-stats">
-      <div class="hero-stat-badge">
-        <span style="color:var(--kr)">🇰🇷 🇹🇭 🇲🇾 🇭🇰</span> 4 Quốc gia
-      </div>
-      <div class="hero-stat-badge">
-        <span style="color:var(--hk)">📅 2016 – 2025</span> 10 Năm
-      </div>
-      <div class="hero-stat-badge">
-        <span style="color:var(--good)">📊 8 Biểu đồ</span> Đa chiều
-      </div>
-    </div>
-  </div>
-
-  <!-- Collapsible Quick Guide -->
-  <div class="explainer-box">
-    <div class="explainer-summary" id="explainer-toggle">
-      <span>💡 <b>Giải thích nhanh các chỉ số cốt lõi (Bấm để xem/ẩn)</b></span>
-      <span id="explainer-arrow" style="font-size:11px">▼</span>
-    </div>
-    <div class="explainer-content" id="explainer-content">
-      <div class="explainer-item" style="border-left-color: var(--kr);">
-        <strong>Gánh nặng trả nợ (DSR)</strong>
-        Tỷ lệ % thu nhập phải dành để trả cả gốc lẫn lãi. DSR đo áp lực dòng tiền thực tế đè nặng lên người vay, khác với dư nợ/GDP.
-      </div>
-      <div class="explainer-item" style="border-left-color: var(--hk);">
-        <strong>Độ lệch so với mốc 20 năm (DSR Gap)</strong>
-        Mốc = trung bình 2006-Q1→2025-Q4 của chính nước đó. BIS khuyến nghị so với lịch sử từng nước thay vì so số tuyệt đối giữa các nước.
-      </div>
-      <div class="explainer-item" style="border-left-color: var(--th);">
-        <strong>Dư nợ tín dụng / GDP</strong>
-        Đo quy mô đòn bẩy kinh tế (món nợ phình to bao nhiêu), không phản ánh lãi suất hay áp lực chi trả định kỳ.
-      </div>
-      <div class="explainer-item" style="border-left-color: var(--my);">
-        <strong>Độ trễ truyền dẫn (Transmission Lag)</strong>
-        Khoảng thời gian từ khi Ngân hàng Trung ương bắt đầu tăng lãi suất cho đến khi DSR đạt đỉnh điểm chịu đựng.
-      </div>
-    </div>
-  </div>
-
-  <!-- Smart Filter Toolbar -->
-  <div class="filters">
-    <!-- Top row: Countries and Borrower sector -->
-    <div class="filter-row-top">
-      <div class="fgroup">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <span class="flabel">Quốc gia phân tích</span>
-          <div class="quick-chips">
-            <button class="btn-mini" id="btn-all-countries">Tất cả</button>
-            <button class="btn-mini" id="btn-clear-countries">Bỏ chọn</button>
-          </div>
-        </div>
-        <div class="chips" id="chips"></div>
-      </div>
-
-      <div class="fgroup">
-        <span class="flabel">Khu vực vay nợ (Dư nợ)</span>
-        <div class="seg" id="borrower">
-          <button data-b="P" aria-pressed="true">Tổng PNFS</button>
-          <button data-b="H" aria-pressed="false">Hộ gia đình</button>
-          <button data-b="N" aria-pressed="false">Doanh nghiệp</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bottom row: Time range, Chart topic switcher, Phase toggle -->
-    <div class="filter-row-bottom">
-      <div class="fgroup">
-        <span class="flabel">Khoảng thời gian</span>
-        <div class="seg" id="range">
-          <button data-r="all" aria-pressed="true">Toàn bộ 2016–2025</button>
-          <button data-r="cycle" aria-pressed="false">Chu kỳ 2021–2025</button>
-          <button data-r="recent" aria-pressed="false">Từ 2023</button>
-        </div>
-      </div>
-
-      <div class="fgroup">
-        <span class="flabel">Lọc theo nhóm biểu đồ</span>
-        <div class="chart-cats" id="chart-cats">
-          <button class="cat-btn active" data-cat="all">📌 Tất cả (8)</button>
-          <button class="cat-btn" data-cat="dsr">📊 Gánh nặng nợ (3)</button>
-          <button class="cat-btn" data-cat="macro">🏛️ Lãi suất & Tín dụng (2)</button>
-          <button class="cat-btn" data-cat="risk">⚡ Độ trễ & Rủi ro (3)</button>
-        </div>
-      </div>
-
-      <div class="fgroup" style="justify-content:flex-end">
-        <label class="switch">
-          <input type="checkbox" id="phases" checked>
-          Tô 3 giai đoạn chính sách (Hiking · Easing · Risk)
-        </label>
-      </div>
-    </div>
-  </div>
-
-  <!-- KPI Cards -->
-  <div class="kpis" id="kpis"></div>
-
-  <!-- Charts Grid -->
-  <div class="grid" id="charts-grid">
-    <!-- Card 1: DSR -->
-    <div class="card" data-cat="dsr">
-      <div class="cardhead">
-        <div>
-          <h3>Gánh nặng trả nợ (DSR)</h3>
-          <p class="note">% thu nhập phải dành để trả gốc + lãi. Nguồn: BIS <code>WS_DSR 1.0</code>.</p>
-        </div>
-        <label class="switch"><input type="checkbox" id="kr-split"> Tách HGĐ / DN (Hàn Quốc)</label>
-      </div>
-      <div class="chart" id="c-dsr"></div>
-      <div class="warnbar" id="dsr-warn"></div>
-    </div>
-
-    <!-- Card 2: DSR Gap -->
-    <div class="card" data-cat="dsr">
-      <div class="cardhead">
-        <div>
-          <h3>DSR lệch so với mốc 20 năm của chính nước đó</h3>
-          <p class="note">Mốc = trung bình 2006-Q1→2025-Q4. BIS khuyến nghị so theo lịch sử từng nước — so mức tuyệt đối giữa các nước là sai phương pháp.</p>
-        </div>
-      </div>
-      <div class="chart" id="c-gap"></div>
-    </div>
-
-    <!-- Card 3: Recovery Scorecard -->
-    <div class="card" data-cat="dsr">
-      <div class="cardhead">
-        <div>
-          <h3>Bảng điểm hồi phục</h3>
-          <p class="note">Đã gỡ được bao nhiêu phần vượt mốc 20 năm tạo ra trong chu kỳ hiking?</p>
-        </div>
-      </div>
-      <div class="chart" id="c-recovery"></div>
-    </div>
-
-    <!-- Card 4: Policy Rate -->
-    <div class="card" data-cat="macro">
-      <div class="cardhead">
-        <div>
-          <h3>Lãi suất chính sách các Ngân hàng Trung ương</h3>
-          <p class="note">Đường đứt nét màu xám = Mỹ (Fed), mốc tham chiếu toàn cầu. Nguồn: BIS <code>WS_CBPOL 1.0</code>.</p>
-        </div>
-      </div>
-      <div class="chart" id="c-policy"></div>
-    </div>
-
-    <!-- Card 5: Credit/GDP -->
-    <div class="card" data-cat="macro">
-      <div class="cardhead">
-        <div>
-          <h3>Dư nợ tín dụng / GDP <span id="bor-tag" class="pill warn"></span></h3>
-          <p class="note">Đo <b>quy mô đòn bẩy</b>, không đo gánh nặng trả nợ. Nguồn: BIS <code>WS_TC 2.0</code>, <code>UNIT_TYPE=770</code>.</p>
-        </div>
-      </div>
-      <div class="chart" id="c-credit"></div>
-    </div>
-
-    <!-- Card 6: Transmission Lag -->
-    <div class="card" data-cat="risk">
-      <div class="cardhead">
-        <div>
-          <h3>Độ trễ truyền dẫn: Δ lãi suất → Δ DSR</h3>
-          <p class="note">Tương quan ở từng độ trễ 0–8 quý. Cột đậm = độ trễ có tương quan cao nhất.</p>
-        </div>
-      </div>
-      <div class="chart" id="c-lag"></div>
-      <p class="foot">n ≈ 39 quý và các độ trễ chồng lấn → đây là thống kê <b>mô tả</b>, không phải kiểm định nhân quả.</p>
-    </div>
-
-    <!-- Card 7: NPL Cross-check -->
-    <div class="card" data-cat="risk">
-      <div class="cardhead">
-        <div>
-          <h3>Kiểm tra chéo: DSR tăng có thành nợ xấu (NPL) không?</h3>
-          <p class="note">Cả hai chuỗi quy về chỉ số 2016 = 100 để dùng chung một trục. NPL là số năm (World Bank); DSR lấy quý IV để khớp.</p>
-        </div>
-      </div>
-      <div class="chart" id="c-npl"></div>
-      <div class="warnbar" id="npl-warn"></div>
-    </div>
-
-    <!-- Card 8: Surprise Analysis -->
-    <div class="card" data-cat="risk">
-      <div class="cardhead">
-        <div>
-          <h3>Điều bất ngờ: Dư nợ giảm nhưng gánh nặng vẫn lập đỉnh?</h3>
-          <p class="note">Thay đổi từ 2021-Q4 đến quý DSR đạt đỉnh của từng nước (pp).</p>
-        </div>
-      </div>
-      <div class="chart" id="c-surprise"></div>
-    </div>
-  </div>
-
-  <!-- Raw Data Table -->
-  <div class="card" style="margin-top:24px">
-    <div class="cardhead">
-      <div>
-        <h3>Tra cứu & Tải dữ liệu thô</h3>
-        <p class="note" id="table-note"></p>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <div class="seg" id="tableset">
-          <button data-t="dsr" aria-pressed="true">DSR</button>
-          <button data-t="dsr_gap" aria-pressed="false">DSR lệch mốc</button>
-          <button data-t="credit" aria-pressed="false">Dư nợ/GDP</button>
-          <button data-t="policy" aria-pressed="false">Lãi suất</button>
-          <button data-t="npl" aria-pressed="false">NPL</button>
-        </div>
-        <div class="search-box">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input type="text" id="table-search" placeholder="Tìm kiếm kỳ / ngày...">
-        </div>
-        <button class="btn btn-primary" id="dl">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          Tải CSV
+<section class="filters" id="filters" aria-label="Bộ lọc">
+  <div class="filters-inner">
+    <button class="btn drawer-btn" id="drawer-btn" type="button" aria-controls="filter-panel" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+      <span id="drawer-summary">Bộ lọc</span>
+    </button>
+    <div class="filter-panel" id="filter-panel">
+      <div class="drawer-head"><h2>Bộ lọc</h2>
+        <button class="iconbtn" id="drawer-close" type="button" aria-label="Đóng bộ lọc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div class="fgroup countries">
+        <span class="f-label" id="lbl-c">Nền kinh tế</span>
+        <button class="cpick" id="country-picker-btn" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="picker" aria-labelledby="lbl-c cpick-sum">
+          <span class="cpick-dots" id="cpick-dots" aria-hidden="true"></span>
+          <span class="cpick-text" id="cpick-sum">Chọn nước</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </button>
+        <div class="chips" id="chips" aria-label="Các nước đang chọn"></div>
       </div>
-    </div>
-    <div class="tablewrap" style="max-height:440px;overflow-y:auto">
-      <table id="table"></table>
+      <div class="fgroup">
+        <span class="f-label" id="lbl-b">Người vay</span>
+        <div class="seg" id="borrower-seg" role="group" aria-labelledby="lbl-b">
+          <button type="button" data-b="P" aria-pressed="true" title="P · Khu vực tư nhân phi tài chính">Tư nhân</button>
+          <button type="button" data-b="H" aria-pressed="false" title="H · Hộ gia đình">Hộ gia đình</button>
+          <button type="button" data-b="N" aria-pressed="false" title="N · Doanh nghiệp phi tài chính">Doanh nghiệp</button>
+        </div>
+      </div>
+      <div class="fgroup">
+        <span class="f-label" id="lbl-y">Năm</span>
+        <div class="yr" id="year-range" role="group" aria-labelledby="lbl-y">
+          <output id="yr-from-out" for="yr-from">…</output>
+          <div class="dual">
+            <div class="rail"></div><div class="fill" id="yr-fill"></div>
+            <input type="range" id="yr-from" aria-label="Năm bắt đầu" step="1">
+            <input type="range" id="yr-to" aria-label="Năm kết thúc" step="1">
+          </div>
+          <output id="yr-to-out" for="yr-to">…</output>
+        </div>
+      </div>
+      <div class="fgroup">
+        <span class="f-label" id="lbl-v">DSR</span>
+        <div class="seg" id="mode-toggle" role="group" aria-labelledby="lbl-v">
+          <button type="button" data-v="gap" aria-pressed="true" title="Độ lệch so với trung bình 20 năm của chính nước đó">Độ lệch 20 năm</button>
+          <button type="button" data-v="level" aria-pressed="false" title="Mức DSR tuyệt đối — không so giữa các nước">Mức</button>
+        </div>
+      </div>
+      <p class="seg-note" id="borrower-note" aria-live="polite"></p>
     </div>
   </div>
-
-  <!-- Data Coverage Table -->
-  <div class="card" style="margin-top:20px">
-    <div class="cardhead">
-      <div>
-        <h3>Độ phủ dữ liệu — Công bố đầy đủ, không lấp giá trị thiếu</h3>
-        <p class="note">Mọi khoảng trống dưới đây được giữ nguyên bản. Tuyệt đối không nội suy, không điền giá trị giả mạo.</p>
+  <div class="drawer-scrim" id="drawer-scrim" hidden></div>
+  <div class="picker" id="picker" role="dialog" aria-modal="false" aria-label="Chọn nền kinh tế" hidden>
+    <div class="picker-head">
+      <input type="search" id="picker-search" placeholder="Tìm nước (tiếng Việt hoặc tiếng Anh)…" aria-label="Tìm nước" autocomplete="off">
+      <div class="quick" role="group" aria-label="Chọn nhanh">
+        <button type="button" data-quick="focus">4 nước gốc</button>
+        <button type="button" data-quick="asia">Châu Á</button>
+        <button type="button" data-quick="euro">Khu vực euro</button>
+        <button type="button" data-quick="advanced">Advanced</button>
+        <button type="button" data-quick="emerging">Emerging</button>
+        <button type="button" data-quick="clear">Bỏ chọn hết</button>
       </div>
     </div>
-    <div class="tablewrap"><table id="cov"></table></div>
+    <div class="picker-list" id="picker-list"></div>
+    <div class="picker-foot"><span id="picker-count"></span><button class="btn" type="button" id="picker-done">Xong</button></div>
   </div>
+</section>
 
-  <footer>
-    <span id="src"></span> · Giai đoạn 01/01/2016 – 31/12/2025 ·
-    Dữ liệu tải bằng <code>scripts/fetch_data.py</code>, phân tích chuẩn xác trong <code>notebooks/01_analysis.ipynb</code>.
-  </footer>
-</main>
-
-<!-- ═══════════════════════════ STORY ═══════════════════════════ -->
-<main class="wrap" id="view-story" hidden>
-  <div class="story">
-    <div class="story-header">
-      <div class="story-tag">Báo cáo phân tích chuyên sâu · BIS Data Story</div>
-      <h1>Bốn nền kinh tế, một cú sốc lãi suất, bốn kết cục</h1>
-      <p class="lede">
-        Trước các biến động mới của chính sách tiền tệ quốc tế, khả năng chống chịu của khu vực tư nhân tại bốn nền kinh tế Châu Á ghi nhận sự phân hóa sâu sắc. Dữ liệu thực nghiệm từ BIS và World Bank cho thấy sự khác biệt về mức độ độc lập tiền tệ và cấu trúc nợ đã dẫn tới bốn kết cục hoàn toàn riêng biệt, không thể quy về một mẫu số chung cho khu vực.
-      </p>
+<main id="main" tabindex="-1">
+  <!-- ======================================================= dashboard -->
+  <section class="view page" id="view-dashboard" data-view="dashboard" aria-labelledby="headline">
+    <div class="page-head">
+      <div class="kicker">Bảng điều khiển · dữ liệu đến <span data-k="dsr_last">…</span></div>
+      <h1 class="headline" id="headline"><span class="sk-line" style="width:70%"></span></h1>
+      <p class="lede" id="lede"><span class="sk-line" style="width:90%"></span></p>
     </div>
 
-    <!-- Executive Summary Box -->
-    <div class="exec-summary">
-      <h3>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-        Tóm tắt điều hành (Executive Summary)
-      </h3>
-      <div class="exec-grid">
-        <div class="exec-card" style="--ec: var(--hk);">
-          <div class="exec-country">Hong Kong SAR</div>
-          <div class="exec-verdict"><b>Vị thế rủi ro cao nhất:</b> Cơ chế neo tỷ giá nhập khẩu toàn bộ cú sốc tăng lãi suất của Fed; nợ xấu tăng 77%, gánh nặng DSR còn vượt mốc lịch sử 7.1pp và mới giải tỏa được 35.8% phần vượt đỉnh.</div>
-        </div>
-        <div class="exec-card" style="--ec: var(--kr);">
-          <div class="exec-country">Hàn Quốc</div>
-          <div class="exec-verdict"><b>Độ nhạy truyền dẫn cao:</b> Tỷ trọng nợ vay lãi suất thả nổi lớn khiến DSR phản ứng ngay sau 0–1 quý; khu vực doanh nghiệp tiếp tục gia tăng đòn bẩy ngay trong chu kỳ thắt chặt.</div>
-        </div>
-        <div class="exec-card" style="--ec: var(--th);">
-          <div class="exec-country">Thái Lan</div>
-          <div class="exec-verdict"><b>Đã hoàn tất phục hồi:</b> DSR đã giảm về dưới mức trung bình 20 năm; mặt bằng lãi suất chính sách thấp nhất nhóm tạo dư địa đệm an toàn cho nền kinh tế.</div>
-        </div>
-        <div class="exec-card" style="--ec: var(--my);">
-          <div class="exec-country">Malaysia</div>
-          <div class="exec-verdict"><b>Tự chủ tiền tệ hiệu quả:</b> Giữ mức tăng lãi suất thấp nhất khu vực (+1.25pp), không bị cuốn theo vòng xoáy của Fed; DSR duy trì ổn định và tỷ lệ nợ xấu tiếp tục giảm.</div>
-        </div>
-      </div>
+    <div class="kpis" id="kpis" aria-live="polite">
+      <div class="kpi"><div class="k">Nền kinh tế đang chọn</div><div class="v" id="kpi-n"><span class="sk-line" style="width:3ch"></span></div><div class="s" id="kpi-n-s">&nbsp;</div></div>
+      <div class="kpi"><div class="k">Độ lệch DSR trung vị</div><div class="v" id="kpi-gap"><span class="sk-line" style="width:5ch"></span></div><div class="s" id="kpi-gap-s">&nbsp;</div></div>
+      <div class="kpi"><div class="k">Độ trễ trung vị</div><div class="v" id="kpi-lag"><span class="sk-line" style="width:5ch"></span></div><div class="s" id="kpi-lag-s">&nbsp;</div></div>
+      <div class="kpi"><div class="k">Chuỗi bị cắt cụt</div><div class="v" id="kpi-cens"><span class="sk-line" style="width:2ch"></span></div><div class="s" id="kpi-cens-s">&nbsp;</div></div>
     </div>
 
-    <!-- Sticky Table of Contents Pill Bar -->
-    <div class="toc-wrap">
-      <div class="toc">
-        <a href="#s1">1 · Tín hiệu phân hóa</a>
-        <a href="#s2">2 · Phân định rủi ro</a>
-        <a href="#s3">3 · Cơ cấu người vay</a>
-        <a href="#s4">4 · Cú sốc lãi suất</a>
-        <a href="#s5">5 · Độ trễ truyền dẫn</a>
-        <a href="#s6">6 · Kiểm tra chéo NPL</a>
-        <a href="#s7">7 · Nghịch lý đòn bẩy</a>
-        <a href="#s8">8 · Vị thế chống chịu</a>
-        <a href="#s9">9 · Giới hạn phân tích</a>
-      </div>
-    </div>
-
-    <section id="s1">
-      <h2><span class="num">1</span>Mở đầu — Tín hiệu phân hóa sau chu kỳ thắt chặt</h2>
-      <p>Sau chu kỳ tăng lãi suất quyết liệt của Cục Dự trữ Liên bang Mỹ (Fed) giai đoạn 2022–2023 và các đợt nới lỏng tiếp theo, bốn nền kinh tế Châu Á có quy mô nợ tư nhân lớn nhất khu vực bước vào năm 2026 với những vị thế tài chính trái ngược. Mức độ phục hồi giữa các quốc gia có khoảng cách đáng kể, cho thấy rủi ro tín dụng khu vực không vận động theo một xu hướng đồng nhất.</p>
-      <p>Tại thời điểm cuối năm 2025, tỷ lệ trả nợ (DSR) của khu vực tư nhân Hong Kong vẫn duy trì ở mức <span class="num-hl" data-v="hk_now"></span>% thu nhập, cao hơn <span class="num-hl" data-v="hk_gap"></span> điểm phần trăm so với mức trung bình 20 năm của chính nền kinh tế này. Tỷ lệ này cho thấy Hong Kong mới chỉ giải tỏa được <span class="num-hl" data-v="hk_repaid"></span>% phần gánh nặng thặng dư tích tụ từ chu kỳ tăng lãi suất. Ngược lại, chỉ số DSR của Thái Lan đã hạ về mức <span class="num-hl" data-v="th_now"></span>%, thấp hơn mức chuẩn 20 năm của mình <span class="num-hl" data-v="th_gap_abs"></span>pp và hoàn tất toàn bộ quá trình phục hồi.</p>
-      <div class="card">
-        <h3>DSR lệch so với mốc 20 năm của chính nước đó</h3>
-        <div class="chart" id="s-gap"></div>
+    <section class="dsec" aria-labelledby="sec-1">
+      <div class="sec-head"><span class="sec-no" aria-hidden="true">01</span><div><h2 class="sec-title" id="sec-1">Gánh nặng trả nợ hiện tại</h2><p class="sec-dek">So với mức bình thường 20 năm của chính từng nền kinh tế — cách so sánh BIS khuyến nghị.</p></div></div>
+      <div class="grid">
+      <article class="card w7" id="card-dsr" data-chart="dsr">
+        <header><div><h2 id="t-dsr">Gánh nặng trả nợ (DSR)</h2><p class="dek" id="d-dsr"></p></div>
+          <button class="howto" type="button" data-guide="dsr" aria-label="Cách đọc biểu đồ gánh nặng trả nợ">ⓘ Cách đọc</button></header>
+        <div class="plot tall" id="p-dsr"><div class="skeleton"></div></div>
+        <p class="note" id="n-dsr"></p>
+        <footer id="f-dsr">Nguồn: BIS WS_DSR 1.0 · Đơn vị: điểm phần trăm (pp) so với trung bình 80 quý gần nhất của chính nước đó · ○ trên đường: quý bắt đầu tăng lãi suất</footer>
+      </article>
+      <article class="card w5" id="card-map" data-chart="map">
+        <header><div><h2 id="t-map">Bản đồ độ lệch DSR</h2><p class="dek" id="d-map"></p></div>
+          <button class="howto" type="button" data-guide="map" aria-label="Cách đọc bản đồ">ⓘ Cách đọc</button></header>
+        <p class="map-hint">Bấm vào một nước trên bản đồ để xem hồ sơ dữ liệu</p>
+        <div class="plot" id="p-map"><div class="skeleton"></div></div>
+        <details class="table-view"><summary>Xem bảng số liệu của bản đồ</summary><div class="tbl-wrap" id="tbl-map"></div></details>
+        <footer>Nguồn: BIS WS_DSR 1.0 · Đơn vị: điểm phần trăm (pp) · Xám: không có số liệu DSR · Hong Kong vẽ bằng chấm tròn vì quá nhỏ ở tỉ lệ này</footer>
+      </article>
       </div>
     </section>
-
-    <section id="s2">
-      <h2><span class="num">2</span>Câu hỏi nghiên cứu — Phân định quy mô nợ và dòng tiền chi trả</h2>
-      <p>Để đánh giá chính xác sức chống chịu của từng nền kinh tế trước nguy cơ lãi suất toàn cầu neo cao hoặc tăng trở lại, phân tích cần bóc tách rạch ròi hai chỉ tiêu thường bị đồng nhất:</p>
-      <ul>
-        <li><b>Dư nợ tín dụng / GDP</b> (BIS <code>WS_TC</code>): Phản ánh quy mô đòn bẩy tích tụ trong nền kinh tế so với tổng sản phẩm quốc nội.</li>
-        <li><b>Tỷ lệ chi trả nợ DSR</b> (BIS <code>WS_DSR</code>): Đo lường tỷ lệ phần trăm thu nhập thực tế phải trích ra định kỳ để thanh toán cả gốc lẫn chi phí lãi vay.</li>
-      </ul>
-      <div class="callout warn">
-        <b>Bản chất của rủi ro thanh khoản</b>
-        Một nền kinh tế hoàn toàn có thể thu hẹp quy mô dư nợ nhưng vẫn đối mặt với áp lực thanh khoản tăng cao, nếu lãi suất áp dụng cho phần dư nợ hiện hữu tăng nhanh hơn tốc độ hoàn trả nợ gốc. Cơ chế này diễn ra trên thực tế như thế nào sẽ được kiểm chứng cụ thể tại Mục 7.
+    <section class="dsec" aria-labelledby="sec-2">
+      <div class="sec-head"><span class="sec-no" aria-hidden="true">02</span><div><h2 class="sec-title" id="sec-2">Truyền dẫn từ lãi suất</h2><p class="sec-dek">Lãi suất tăng bao nhiêu, và gánh nặng trả nợ mất bao lâu mới lên đỉnh.</p></div></div>
+      <div class="grid">
+      <article class="card w5" id="card-lag" data-chart="lag">
+        <header><div><h2 id="t-lag">Độ trễ truyền dẫn</h2><p class="dek" id="d-lag"></p></div>
+          <button class="howto" type="button" data-guide="lag" aria-label="Cách đọc biểu đồ độ trễ">ⓘ Cách đọc</button></header>
+        <div class="plot" id="p-lag" style="height:300px"><div class="skeleton"></div></div>
+        <div class="tbl-wrap" id="tbl-lag"></div>
+        <p class="note" id="n-lag"></p>
+        <footer>Nguồn: BIS WS_DSR 1.0, WS_CBPOL 1.0 · Đơn vị: quý (±1 quý) · Chu kỳ tăng bắt đầu trong <span data-k="cycle_window">…</span></footer>
+      </article>
+      <article class="card w7" id="card-policy" data-chart="policy">
+        <header><div><h2 id="t-policy">Lãi suất chính sách</h2><p class="dek" id="d-policy"></p></div>
+          <button class="howto" type="button" data-guide="policy" aria-label="Cách đọc biểu đồ lãi suất chính sách">ⓘ Cách đọc</button></header>
+        <div class="plot" id="p-policy"><div class="skeleton"></div></div>
+        <p class="note" id="n-policy"></p>
+        <footer>Nguồn: BIS WS_CBPOL 1.0, cuối tháng · Đơn vị: % / năm · Khu vực euro: lãi suất ECB từ năm gia nhập (theo ECB)</footer>
+      </article>
+      <article class="card w12" id="card-scatter" data-chart="scatter">
+        <header><div><h2 id="t-scatter">Liên quốc gia</h2><p class="dek" id="d-scatter"></p></div>
+          <button class="howto" type="button" data-guide="scatter" aria-label="Cách đọc biểu đồ liên quốc gia">ⓘ Cách đọc</button></header>
+        <div class="seg" id="scatter-y" role="group" aria-label="Trục dọc">
+          <button type="button" data-y="rise" aria-pressed="true">DSR tăng (pp)</button>
+          <button type="button" data-y="lag" aria-pressed="false">Độ trễ (quý)</button>
+        </div>
+        <div class="plot tall" id="p-scatter"><div class="skeleton"></div></div>
+        <p class="note" id="n-scatter"></p>
+        <footer>Nguồn: BIS WS_DSR 1.0, WS_CBPOL 1.0 · Trục ngang thang log · Tương quan mô tả, không phải nhân quả</footer>
+      </article>
       </div>
     </section>
-
-    <section id="s3">
-      <h2><span class="num">3</span>Cơ cấu chủ thể vay nợ và giới hạn thông tin</h2>
-      <p>Dữ liệu tổng dư nợ theo chuẩn BIS (<code>TC_LENDERS = A</code>) bao quát toàn bộ các khoản cấp tín dụng từ hệ thống ngân hàng trong nước, ngân hàng quốc tế, các định chế tài chính phi ngân hàng và kênh phát hành trái phiếu, phản ánh bức tranh nợ rộng hơn phạm vi tín dụng ngân hàng đơn thuần.</p>
-      <div class="callout crit">
-        <b>Giới hạn thống kê từ nguồn dữ liệu BIS</b>
-        Số liệu DSR có phân rã riêng cho khu vực Hộ gia đình và Doanh nghiệp duy nhất tại Hàn Quốc; ba nền kinh tế còn lại chỉ công bố số liệu tổng cho toàn bộ khu vực tư nhân phi tài chính (PNFS). Ngược lại, chỉ tiêu Dư nợ/GDP cung cấp đầy đủ phân rã cho cả bốn thị trường. Do đó, nghiên cứu có thể xác định rõ cơ cấu người vay ở mọi nền kinh tế, nhưng việc đo lường trực tiếp gánh nặng dòng tiền của từng nhóm chủ thể chỉ thực hiện được đối với Hàn Quốc.
-      </div>
-      <div class="card">
-        <h3>Cơ cấu người vay, 2025-Q4 (% GDP)</h3>
-        <div class="chart" id="s-mix"></div>
-      </div>
-      <p>Cơ cấu phân bổ dư nợ tại thời điểm cuối năm 2025 cho thấy đặc thù riêng biệt của từng thị trường: Hong Kong tập trung tỷ trọng áp đảo ở khu vực doanh nghiệp gắn với vai trò trung tâm tài chính và thị trường bất động sản thương mại. Trong khi đó, Hàn Quốc và Thái Lan ghi nhận tỷ trọng đòn bẩy phân bổ tương đối đồng đều giữa doanh nghiệp và hộ gia đình.</p>
-    </section>
-
-    <section id="s4">
-      <h2><span class="num">4</span>Cường độ cú sốc lãi suất và mức độ phản ứng của DSR</h2>
-      <p>Mức độ gia tăng của lãi suất chính sách trong chu kỳ thắt chặt phân hóa rõ rệt giữa bốn nền kinh tế. Tính từ đáy năm 2021 đến đỉnh chu kỳ, lãi suất chính sách tại Hong Kong tăng <span class="num-hl" data-v="hk_hike"></span>pp, Hàn Quốc tăng <span class="num-hl" data-v="kr_hike"></span>pp, Thái Lan tăng <span class="num-hl" data-v="th_hike"></span>pp, trong khi Malaysia chỉ điều chỉnh tăng <span class="num-hl" data-v="my_hike"></span>pp.</p>
-      <p>Biên độ tăng của Hong Kong tương đương tuyệt đối với mức tăng của Fed (+5.25pp) và diễn ra đồng thời từ tháng 03/2022. Đây là hệ quả tất yếu của chế độ neo tỷ giá Currency Board buộc Cơ quan Tiền tệ Hong Kong (HKMA) phải điều chỉnh theo sát chính sách tiền tệ của Mỹ. Ngược lại, các quốc gia duy trì cơ chế tỷ giá linh hoạt có quyền tự chủ để kiểm soát mức độ thắt chặt phù hợp với điều kiện nội địa.</p>
-      <div class="card">
-        <h3>Lãi suất chính sách — Mỹ dẫn nhịp</h3>
-        <div class="chart" id="s-policy"></div>
-      </div>
-      <p>Mức độ vượt đỉnh lịch sử 20 năm của chỉ số DSR phản ánh chính xác quy mô của cú sốc lãi suất: Hong Kong ghi nhận mức vượt đỉnh cao nhất (+10.9pp), tiếp theo là Hàn Quốc (+3.1pp), Thái Lan (+1.5pp) và Malaysia (+0.2pp). Mức độ phụ thuộc vào chu kỳ lãi suất bên ngoài càng lớn, mức gia tăng nghĩa vụ tài chính của khu vực tư nhân càng nặng nề.</p>
-    </section>
-
-    <section id="s5">
-      <h2><span class="num">5</span>Tín hiệu cảnh báo — Đo lường độ trễ truyền dẫn</h2>
-      <p>Giả thuyết đề cương ban đầu nhận định rằng gánh nặng trả nợ DSR sẽ gia tăng mạnh và đạt đỉnh trong khoảng 12 đến 18 tháng sau thời điểm ngân hàng trung ương bắt đầu tăng lãi suất.</p>
-      <div class="callout crit">
-        <b>Kiểm chứng độ trễ thực tế</b>
-        Quan sát thực nghiệm cho thấy thời gian truyền dẫn trên thực tế kéo dài hơn đáng kể so với giả định: chỉ có <span class="num-hl" data-v="lag_fits"></span>/6 chuỗi dữ liệu đạt đỉnh trong phạm vi 12–18 tháng. Trung vị thời gian trễ thực tế ghi nhận ở mức <span class="num-hl" data-v="lag_median"></span> tháng tính từ đợt tăng lãi suất đầu tiên.
-      </div>
-      <div class="card">
-        <h3>Độ trễ thực tế: Từ lần tăng lãi suất đầu tiên đến quý DSR đạt đỉnh</h3>
-        <div class="chart" id="s-lag"></div>
-      </div>
-      <p>Thời gian trễ thực tế kéo dài trung bình khoảng hai năm cho thấy các hợp đồng tín dụng có quán tính lớn và chi phí tài chính ngấm dần theo chu kỳ tái định giá nợ. Độ trễ kéo dài đồng nghĩa với việc nếu một đợt thắt chặt mới xuất hiện, đỉnh điểm căng thẳng dòng tiền sẽ dồn sang các năm kế tiếp, tích tụ lên phần gánh nặng nợ hiện vẫn chưa kịp giải tỏa.</p>
-      <p>Phân tích hệ số tương quan theo từng quý trễ làm rõ thêm cơ cấu định giá nợ: Hàn Quốc ghi nhận tương quan dương rất cao ngay tại quý trễ thứ 0 và thứ 1 (r ≈ +0.61) do phần lớn dư nợ áp dụng lãi suất thả nổi, khiến chi phí vay tái định giá tức thì; trong khi Thái Lan và Malaysia có phản ứng trễ phân tán và không xuất hiện tín hiệu truyền dẫn ngắn hạn rõ nét.</p>
-    </section>
-
-    <section id="s6">
-      <h2><span class="num">6</span>Kiểm tra chéo — Mối liên hệ giữa gánh nặng nợ và nợ xấu</h2>
-      <div class="callout crit">
-        <b>Kết quả đối chiếu với tỷ lệ nợ xấu (NPL)</b>
-        Chuỗi truyền dẫn giả định từ việc gánh nặng trả nợ tăng cao dẫn tới nợ xấu bùng phát không được dữ liệu ủng hộ tại phần lớn các thị trường. Trong bốn nền kinh tế, chỉ duy nhất Hong Kong ghi nhận nợ xấu gia tăng đồng pha với đà tăng của DSR.
-      </div>
-      <div class="card">
-        <h3>DSR và NPL — Chỉ số 2016 = 100</h3>
-        <div class="chart tall" id="s-npl"></div>
-      </div>
-      <p>Tại Hàn Quốc và Thái Lan, tương quan giữa DSR và tỷ lệ nợ xấu thậm chí mang dấu âm (<span class="num-hl" data-v="kr_corr"></span> và <span class="num-hl" data-v="th_corr"></span>), nghĩa là áp lực trả nợ tăng lên nhưng tỷ lệ nợ xấu trên báo cáo ngân hàng không tăng tương ứng. Hiện tượng này xuất phát từ việc các hộ gia đình chủ động cắt giảm chi tiêu sinh hoạt để ưu tiên thanh toán nghĩa vụ nợ, sự hỗ trợ từ các chương trình giãn hoãn nợ thời kỳ hậu đại dịch, cùng với đặc tính ghi nhận trễ của chỉ tiêu nợ xấu.</p>
-      <div class="callout">
-        <b>Tính đầy đủ của số liệu</b>
-        Nguồn dữ liệu của World Bank hiện chưa cập nhật chỉ số NPL các năm gần nhất của Hàn Quốc và Thái Lan. Các tính toán giữ nguyên hiện trạng số liệu quan sát thực tế và không thực hiện phép nội suy nhân tạo.
+    <section class="dsec" aria-labelledby="sec-3">
+      <div class="sec-head"><span class="sec-no" aria-hidden="true">03</span><div><h2 class="sec-title" id="sec-3">Bối cảnh và kiểm tra chéo</h2><p class="sec-dek">Quy mô nợ, nợ xấu, và dữ liệu nào đang có hoặc đang thiếu.</p></div></div>
+      <div class="grid">
+      <article class="card w6" id="card-credit" data-chart="credit">
+        <header><div><h2 id="t-credit">Tín dụng / GDP</h2><p class="dek" id="d-credit"></p></div>
+          <button class="howto" type="button" data-guide="credit" aria-label="Cách đọc biểu đồ tín dụng trên GDP">ⓘ Cách đọc</button></header>
+        <div class="plot" id="p-credit"><div class="skeleton"></div></div>
+        <p class="note" id="n-credit"></p>
+        <footer>Nguồn: BIS WS_TC 2.0 (mọi bên cho vay, giá thị trường, đã điều chỉnh gãy chuỗi) · Đơn vị: % GDP</footer>
+      </article>
+      <article class="card w6" id="card-npl" data-chart="npl">
+        <header><div><h2 id="t-npl">Nợ xấu (NPL)</h2><p class="dek" id="d-npl"></p></div>
+          <button class="howto" type="button" data-guide="npl" aria-label="Cách đọc biểu đồ nợ xấu">ⓘ Cách đọc</button></header>
+        <div class="plot" id="p-npl"><div class="skeleton"></div></div>
+        <div class="tbl-wrap" id="tbl-npl"></div>
+        <p class="note" id="n-npl"></p>
+        <footer>Nguồn: World Bank FB.AST.NPER.ZS · Đơn vị: % tổng dư nợ ngân hàng · Số năm · Tương quan chỉ mang tính mô tả</footer>
+      </article>
+      <article class="card w12" id="card-coverage" data-chart="coverage">
+        <header><div><h2 id="t-coverage">Độ phủ dữ liệu và kỳ mới nhất</h2><p class="dek" id="d-coverage"></p></div>
+          <button class="howto" type="button" data-guide="coverage" aria-label="Cách đọc bảng độ phủ dữ liệu">ⓘ Cách đọc</button></header>
+        <div class="tbl-wrap" id="tbl-coverage"><span class="sk-line" style="width:100%;height:120px"></span></div>
+        <footer>% thiếu = số kỳ không có giá trị / số kỳ đáng lẽ có trong khoảng năm đang chọn (tính tới kỳ mới nhất của bộ dữ liệu)</footer>
+      </article>
       </div>
     </section>
+  </section>
 
-    <section id="s7">
-      <h2><span class="num">7</span>Kiểm chứng nghịch lý đòn bẩy — Dư nợ thu hẹp nhưng gánh nặng lập đỉnh</h2>
-      <p>Giả thuyết đề cương đặt ra nhận định rằng trong giai đoạn thắt chặt tiền tệ, tỷ lệ Dư nợ/GDP có xu hướng giảm bớt do điều kiện cấp tín dụng thắt chặt, nhưng tỷ lệ trả nợ DSR vẫn có thể lập đỉnh do mặt bằng lãi suất neo cao. Kết quả kiểm chứng thực tế xác nhận hiện tượng này xuất hiện tại <span class="num-hl" data-v="surp_fits"></span>/4 nền kinh tế.</p>
-      <div class="card">
-        <h3>Δ DSR so với Δ Dư nợ/GDP, từ 2021-Q4 đến quý DSR đạt đỉnh</h3>
-        <div class="chart" id="s-surprise"></div>
-      </div>
-      <ul>
-        <li><b>Hong Kong</b>: Dư nợ/GDP giảm 10.4pp trong khi DSR tăng 5.9pp. Quy mô đòn bẩy thu hẹp nhưng nghĩa vụ tài chính vẫn chạm đỉnh do chi phí lãi vay tăng vượt tốc độ trả nợ gốc.</li>
-        <li><b>Thái Lan</b>: Dư nợ/GDP giảm 7.1pp và DSR tăng 0.6pp, cùng thể hiện xu hướng giảm đòn bẩy nhưng áp lực chi trả vẫn nhích tăng.</li>
-        <li><b>Hàn Quốc</b>: Cả hai chỉ tiêu cùng tăng (dư nợ tăng 3.0pp, DSR tăng 2.3pp). Gánh nặng gia tăng đến từ việc khu vực tư nhân tiếp tục mở rộng vay nợ trong giai đoạn lãi suất đi lên.</li>
-        <li><b>Malaysia</b>: Cả hai chỉ tiêu cùng giảm, cho thấy quá trình hạ đòn bẩy diễn ra song hành với việc kiểm soát tốt chi phí trả nợ.</li>
-      </ul>
-      <div class="callout ok">
-        <b>Vai trò của tính độc lập trong điều hành tiền tệ</b>
-        Kết quả trên làm nổi bật vai trò quyết định của quyền tự chủ chính sách tiền tệ. Malaysia, nhờ không bị áp lực thắt chặt từ bên ngoài, đã duy trì được cả tính ổn định của quy mô nợ và gánh nặng trả nợ. Ngược lại, Hong Kong, do ràng buộc tỷ giá, đã gánh trọn chi phí gia tăng nghĩa vụ trả nợ ngay cả khi nỗ lực giảm bớt quy mô vay nợ.
-      </div>
-    </section>
+  <!-- ======================================================= story -->
+  <section class="view page" id="view-story" data-view="story" hidden aria-label="Câu chuyện dữ liệu">
+    <article class="article" id="story"></article>
+  </section>
 
-    <section id="s8">
-      <h2><span class="num">8</span>Hệ quả thực tiễn — Vị thế chống chịu trước rủi ro chu kỳ mới</h2>
-      <p>Nếu lãi suất quốc tế duy trì ở mức cao kéo dài, mức độ an toàn tài chính của bốn nền kinh tế sẽ không đồng nhất với thứ tự phân hạng của mức DSR tuyệt đối.</p>
-      <div class="card">
-        <h3>Đã gỡ được bao nhiêu phần vượt mốc 20 năm?</h3>
-        <div class="chart" id="s-recovery"></div>
-      </div>
-      <div class="callout crit">
-        <b>Điểm tập trung rủi ro tại Hong Kong</b>
-        Hong Kong là thị trường có mức độ tổn thương cao nhất do hội tụ ba yếu tố bất lợi: gánh nặng DSR hiện tại vẫn cách xa mức trung bình 20 năm nhiều nhất khu vực (<span data-v="hk_gap"></span>pp), tốc độ giải tỏa gánh nặng chậm nhất (<span data-v="hk_repaid"></span>%), và tỷ lệ nợ xấu đã gia tăng thực tế (+77% so với năm 2021). Yếu tố rủi ro then chốt là cơ chế neo tỷ giá khiến HKMA không thể độc lập từ chối tiếp nhận các đợt thắt chặt tiếp theo từ Fed, đặt khu vực tư nhân vào tình thế tiếp tục gánh chịu chi phí lãi vay cao trong khi chưa kịp hồi phục.
-      </div>
-      <p>Ở chiều ngược lại, Thái Lan đã giải tỏa hoàn toàn áp lực nợ vượt mốc lịch sử, kết hợp với mức lãi suất điều hành <span class="num-hl" data-v="th_rate"></span>% thấp nhất nhóm, tạo vùng đệm chính sách tương đối vững vàng.</p>
-    </section>
+  <!-- ======================================================= guide -->
+  <section class="view page" id="view-guide" data-view="guide" hidden aria-label="Hướng dẫn">
+    <div class="guide" id="guide"></div>
+  </section>
 
-    <section id="s9">
-      <h2><span class="num">9</span>Giới hạn phương pháp luận</h2>
-      <ol>
-        <li><b>Mức độ phân rã dữ liệu DSR</b>: Số liệu DSR tách biệt giữa hộ gia đình và doanh nghiệp chỉ có sẵn tại Hàn Quốc, nơi ghi nhận độ lệch pha 9 tháng giữa đỉnh nợ của hộ gia đình (quý 4/2022) và doanh nghiệp (quý 3/2023). Đối với ba thị trường còn lại, dữ liệu chỉ dừng ở mức tổng thể khu vực tư nhân phi tài chính. Dữ liệu dư nợ/GDP tuy có đủ phân rã nhưng chỉ phản ánh quy mô nợ, không đại diện cho áp lực dòng tiền thanh toán của từng nhóm.</li>
-        <li><b>Đặc tính thống kê của chỉ tiêu nợ xấu</b>: Chuỗi số liệu NPL từ World Bank được tổng hợp theo tần suất năm và có độ trễ công bố ở các năm gần nhất. Việc so khớp dữ liệu quý của DSR với dữ liệu năm của NPL phục vụ mục đích nhận diện xu hướng quan sát, không đại diện cho mô hình kiểm định nhân quả có đủ bậc tự do thống kê. Nghiên cứu bảo toàn số liệu thực tế và kiên quyết không áp dụng các phép nội suy giả định.</li>
-        <li><b>Giả định kỹ thuật trong chỉ số DSR của BIS</b>: BIS chuẩn hóa phương pháp tính DSR dựa trên giả định kỳ hạn còn lại và cơ cấu trả nợ cố định. Do đó, việc so sánh mức tuyệt đối giữa các quốc gia có cấu trúc tài chính khác biệt là không chuẩn xác về phương pháp. Nghiên cứu giải quyết giới hạn này bằng cách sử dụng độ lệch so với mức trung bình lịch sử 20 năm của chính từng nền kinh tế.</li>
-        <li><b>Tách biệt các yếu tố ngoại sinh</b>: Giai đoạn 2020–2022 chịu sự đan xen của đại dịch COVID-19 và các gói can thiệp tài khóa quy mô lớn. Điển hình như đỉnh DSR quý 2/2020 của Malaysia xuất phát từ sự suy giảm đột ngột của mẫu số GDP danh nghĩa thay vì do lãi suất. Nghiên cứu đã kiểm soát yếu tố này bằng cách chỉ đo lường các đỉnh nợ xuất hiện sau thời điểm ngân hàng trung ương chính thức tăng lãi suất.</li>
-        <li><b>Ranh giới thời gian của dữ liệu</b>: Chuỗi dữ liệu thực nghiệm kết thúc vào ngày 31/12/2025. Các phân tích về bối cảnh năm 2026 đóng vai trò là kịch bản định vị vấn đề, hoàn toàn không có điểm dữ liệu thực tế nào được ngoại suy trên hệ thống đồ thị.</li>
-      </ol>
-    </section>
-
-    <footer>
-      Nguồn: BIS SDMX API v2 (<code>WS_DSR 1.0</code>, <code>WS_TC 2.0</code>, <code>WS_CBPOL 1.0</code>)
-      và World Bank <code>FB.AST.NPER.ZS</code>. Toàn bộ số liệu trên trang này được sinh lại từ
-      <code>data/raw/</code> mỗi lần chạy <code>product/build_site.py</code> — không có con số nào gõ tay.
-    </footer>
+  <div class="error-banner" id="load-error" role="alert" hidden>
+    <p><strong>Không tải được dữ liệu.</strong> <span id="load-error-msg"></span></p>
+    <p>Hãy mở trang qua <code>python product/serve.py</code> (không mở trực tiếp file), rồi thử lại.</p>
+    <button class="btn primary" type="button" id="retry-btn">Thử lại</button>
   </div>
 </main>
 
-<script src="vendor/plotly.min.js"></script>
-<script src="app.js"></script>
+<footer class="site-foot">
+  Phạm Ngọc Thiên An · MSSV K244141653 · Khoa Tài chính – Ngân hàng, Trường Đại học Kinh tế – Luật, ĐHQG-HCM ·
+  Dữ liệu: BIS, World Bank · <span data-k="built_line"></span>
+</footer>
+
+<button class="help-fab" id="help-fab" type="button" aria-label="Mở hướng dẫn nhanh (tour)">?</button>
+<div class="toast" id="toast" role="status" aria-live="polite" data-hidden></div>
+
+<dialog class="sheet" id="howto-dialog" aria-labelledby="howto-title">
+  <div class="sheet-head"><h2 id="howto-title"></h2>
+    <button class="iconbtn" type="button" id="howto-close" aria-label="Đóng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="sheet-body guide-card" id="howto-body"></div>
+</dialog>
+
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

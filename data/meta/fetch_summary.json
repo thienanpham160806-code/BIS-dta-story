@@ -1,0 +1,19 @@
+{
+  "retrieved": "2026-10-06",
+  "economies_total": 52,
+  "aggregates": [
+    "XM"
+  ],
+  "with_dsr": 32,
+  "with_dsr_breakdown_HN": 17,
+  "with_credit": 43,
+  "with_policy_rate": 51,
+  "with_npl": 50,
+  "euro_members_in_data": 13,
+  "latest": {
+    "dsr": "2026-Q1",
+    "credit": "2026-Q1",
+    "policy": "2026-08",
+    "npl": "2025"
+  }
+}
