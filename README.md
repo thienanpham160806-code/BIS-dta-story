@@ -1,5 +1,9 @@
 # How long does a rate hike take to bite?
 
+[![CI](https://github.com/thienanpham160806-code/BIS-dta-story/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/thienanpham160806-code/BIS-dta-story/actions/workflows/ci.yml)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
+![Data: BIS · World Bank](https://img.shields.io/badge/data-BIS%20%C2%B7%20World%20Bank-1f4e8c)
+
 ### Policy rates and private-sector debt service across BIS economies
 
 When a central bank starts raising rates, the private sector does not feel it at once: existing loans reprice gradually. I measure that delay with BIS data. For every economy that tightened in 2021–2023, a fixed rule finds the month of lift-off, and I count the quarters until the private non-financial sector's debt service ratio (DSR) peaked. Across the 22 economies where that peak can be measured, the median delay is **8 quarters** (interquartile range 6–11). Four Asian economies anchor the story. Korea and Hong Kong SAR sit at the median, Thailand slightly below it, and Malaysia's DSR never rose above its pre-hike level. Hong Kong is still **7.6 percentage points** above its own 20-year average in 2026-Q1.
